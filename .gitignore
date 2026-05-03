@@ -1,0 +1,6 @@
+
+# LocalAgent API credentials - NEVER commit this file
+config.agent.json
+config.agent.yaml
+*.agent.yaml
+*.agent.json
