@@ -55,6 +55,10 @@
               "target": "Package",
               "version": "[8.0.1, )"
             },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[8.0.1, )"
+            },
             "System.Net.WebSockets.Client": {
               "target": "Package",
               "version": "[4.3.2, )"

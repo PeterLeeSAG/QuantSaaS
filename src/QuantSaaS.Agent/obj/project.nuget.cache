@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "QTSV4ilrP8w=",
+  "dgSpecHash": "/ZYkjoUtM0Y=",
   "success": true,
   "projectFilePath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/QuantSaaS.Agent.csproj",
   "expectedPackageFiles": [
@@ -28,6 +28,7 @@
     "/home/runner/.nuget/packages/microsoft.extensions.filesystemglobbing/8.0.0/microsoft.extensions.filesystemglobbing.8.0.0.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.extensions.hosting/8.0.1/microsoft.extensions.hosting.8.0.1.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.extensions.hosting.abstractions/8.0.1/microsoft.extensions.hosting.abstractions.8.0.1.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.extensions.http/8.0.1/microsoft.extensions.http.8.0.1.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.extensions.logging/8.0.1/microsoft.extensions.logging.8.0.1.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.2/microsoft.extensions.logging.abstractions.8.0.2.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.extensions.logging.configuration/8.0.1/microsoft.extensions.logging.configuration.8.0.1.nupkg.sha512",
