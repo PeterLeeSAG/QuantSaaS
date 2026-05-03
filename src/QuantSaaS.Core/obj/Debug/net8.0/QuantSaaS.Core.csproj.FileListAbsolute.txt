@@ -1,0 +1,12 @@
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/bin/Debug/net8.0/QuantSaaS.Core.deps.json
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/bin/Debug/net8.0/QuantSaaS.Core.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/bin/Debug/net8.0/QuantSaaS.Core.pdb
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.AssemblyInfoInputs.cache
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.AssemblyInfo.cs
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.csproj.CoreCompileInputs.cache
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.sourcelink.json
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/refint/QuantSaaS.Core.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/QuantSaaS.Core.pdb
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/Debug/net8.0/ref/QuantSaaS.Core.dll

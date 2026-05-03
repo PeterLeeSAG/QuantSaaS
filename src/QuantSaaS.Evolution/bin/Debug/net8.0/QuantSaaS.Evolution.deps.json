@@ -1,0 +1,74 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "QuantSaaS.Evolution/1.0.0": {
+        "dependencies": {
+          "QuantSaaS.Core": "1.0.0",
+          "QuantSaaS.Quant": "1.0.0",
+          "QuantSaaS.Strategy": "1.0.0"
+        },
+        "runtime": {
+          "QuantSaaS.Evolution.dll": {}
+        }
+      },
+      "QuantSaaS.Core/1.0.0": {
+        "runtime": {
+          "QuantSaaS.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "QuantSaaS.Quant/1.0.0": {
+        "dependencies": {
+          "QuantSaaS.Core": "1.0.0"
+        },
+        "runtime": {
+          "QuantSaaS.Quant.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "QuantSaaS.Strategy/1.0.0": {
+        "dependencies": {
+          "QuantSaaS.Core": "1.0.0",
+          "QuantSaaS.Quant": "1.0.0"
+        },
+        "runtime": {
+          "QuantSaaS.Strategy.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "QuantSaaS.Evolution/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "QuantSaaS.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "QuantSaaS.Quant/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "QuantSaaS.Strategy/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
