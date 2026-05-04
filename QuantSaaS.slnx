@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuantSaaS.Agent/QuantSaaS.Agent.csproj" />
+    <Project Path="src/QuantSaaS.Core/QuantSaaS.Core.csproj" />
+    <Project Path="src/QuantSaaS.Evolution/QuantSaaS.Evolution.csproj" />
+    <Project Path="src/QuantSaaS.Infrastructure/QuantSaaS.Infrastructure.csproj" />
+    <Project Path="src/QuantSaaS.Quant/QuantSaaS.Quant.csproj" />
+    <Project Path="src/QuantSaaS.SaaS/QuantSaaS.SaaS.csproj" />
+    <Project Path="src/QuantSaaS.Strategy/QuantSaaS.Strategy.csproj" />
+  </Folder>
+</Solution>

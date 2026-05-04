@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "TTu2DP9yt3o=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/QuantSaaS.Quant.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/microsoft.extensions.configuration.abstractions/10.0.7/microsoft.extensions.configuration.abstractions.10.0.7.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.extensions.primitives/10.0.7/microsoft.extensions.primitives.10.0.7.nupkg.sha512"
+  ],
+  "logs": []
+}
