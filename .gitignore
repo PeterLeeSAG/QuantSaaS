@@ -1,0 +1,22 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# User-specific files
+*.user
+*.suo
+.vs/
+
+# NuGet
+.nuget/
+*.nupkg
+packages/
+
+# Agent credentials (NEVER committed)
+**/config.agent.yaml
+**/config.agent.yml
+**/config.agent.json
+
+# Misc
+.DS_Store
+Thumbs.db

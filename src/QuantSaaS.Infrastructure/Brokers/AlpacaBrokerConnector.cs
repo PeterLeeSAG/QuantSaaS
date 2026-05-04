@@ -96,7 +96,7 @@ public sealed class AlpacaBrokerConnector : IBrokerConnector
             {
                 Asset = "USD",
                 Available = account?.BuyingPower ?? 0m,
-                Frozen = account?.PortfolioValue - account?.BuyingPower ?? 0m,
+                Frozen = (account?.PortfolioValue ?? 0m) - (account?.BuyingPower ?? 0m),
             }
         };
 

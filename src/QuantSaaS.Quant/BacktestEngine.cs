@@ -60,7 +60,8 @@ public sealed class BacktestEngine
         }
 
         // ── Initial state ─────────────────────────────────────────────────────
-        decimal cash = spawn.Capital.MonthlyInjectQuote; // seed capital
+        // Seed capital = first monthly injection (no separate initial-capital field in this engine version)
+        decimal cash = spawn.Capital.MonthlyInjectQuote;
         decimal deadStack = 0m, floatStack = 0m;
         string runtimeState = "{}";
 

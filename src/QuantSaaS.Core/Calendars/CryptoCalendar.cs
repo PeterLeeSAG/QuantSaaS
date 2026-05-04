@@ -20,7 +20,7 @@ public sealed class CryptoCalendar : IMarketCalendar
     public int TradingDaysInRange(DateTime from, DateTime to)
     {
         // Crypto trades every calendar day
-        return (int)Math.Ceiling((to - from).TotalDays) + 1;
+        return (int)Math.Floor((to - from).TotalDays) + 1;
     }
 
     public DateTime AddSettlementDays(DateTime tradeDate, int settlementDays)

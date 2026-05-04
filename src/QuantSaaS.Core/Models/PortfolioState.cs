@@ -57,8 +57,7 @@ public record PortfolioState
     public long LastProcessedBarMs { get; init; }
 
     /// <summary>Pending settlement items (for equity instruments, T+2).</summary>
-    public IReadOnlyList<PendingSettlementItem> PendingSettlements { get; init; }
-        = Array.Empty<PendingSettlementItem>();
+    public IReadOnlyList<PendingSettlementItem> PendingSettlements { get; init; } = [];
 }
 
 /// <summary>Represents proceeds from a sell trade awaiting T+2 settlement.</summary>
