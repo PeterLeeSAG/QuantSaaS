@@ -1,6 +1,6 @@
 @QuantSaaS.SaaS_HostAddress = http://localhost:5134
 
-GET {{QuantSaaS.SaaS_HostAddress}}/weatherforecast/
+GET {{QuantSaaS.SaaS_HostAddress}}/healthz
 Accept: application/json
 
 ###
