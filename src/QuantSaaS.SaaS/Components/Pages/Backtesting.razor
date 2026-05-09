@@ -1,0 +1,118 @@
+@page "/backtesting"
+@rendermode InteractiveServer
+@inject AppState AppState
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Backtesting — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="margin-bottom:20px;">
+    <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">Backtesting</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin:0;">Simulate strategy performance on historical data</p>
+</div>
+
+<div class="qs-grid qs-grid-2" style="gap:16px;">
+    <!-- Trigger card -->
+    <div>
+        <div class="qs-card" style="margin-bottom:16px;">
+            <div class="qs-card-header">
+                <span class="qs-card-title">Run Configuration</span>
+            </div>
+
+            <div class="qs-form-group">
+                <label class="qs-label">Parameter Source</label>
+                <select class="qs-select" @bind="_paramSource">
+                    <option value="champion">Current Best Parameters</option>
+                    <option value="custom">Custom JSON</option>
+                </select>
+            </div>
+
+            @if (_paramSource == "custom")
+            {
+                <div class="qs-form-group">
+                    <label class="qs-label">Parameters (JSON)</label>
+                    <textarea class="qs-input mono" rows="6" @bind="_customParams"
+                              placeholder='{"emaFast":5,"emaSlow":20,...}'
+                              style="resize:vertical;"></textarea>
+                </div>
+            }
+
+            <button class="qs-btn qs-btn-primary" @onclick="RunBacktest" disabled="@_running">
+                @(_running ? "Running Backtest…" : "▶ Run Backtest")
+            </button>
+        </div>
+
+        @if (_message != null)
+        {
+            <div class="qs-alert qs-alert-info">ℹ @_message</div>
+        }
+    </div>
+
+    <!-- Results card -->
+    <div>
+        @if (_hasResult)
+        {
+            <div class="qs-card" style="margin-bottom:16px;">
+                <div class="qs-card-header">
+                    <span class="qs-card-title">Results Summary</span>
+                </div>
+                <div class="qs-grid qs-grid-2" style="gap:12px;">
+                    <div class="qs-stat-card">
+                        <div class="qs-stat-label">Total Return</div>
+                        <div class="qs-stat-value mono text-success">+24.7%</div>
+                    </div>
+                    <div class="qs-stat-card">
+                        <div class="qs-stat-label">vs Passive DCA (Alpha)</div>
+                        <div class="qs-stat-value mono text-success">+8.3%</div>
+                    </div>
+                    <div class="qs-stat-card">
+                        <div class="qs-stat-label">Max Drawdown</div>
+                        <div class="qs-stat-value mono text-danger">-12.4%</div>
+                    </div>
+                    <div class="qs-stat-card">
+                        <div class="qs-stat-label">Sharpe Ratio</div>
+                        <div class="qs-stat-value mono">1.82</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qs-card">
+                <div class="qs-card-header">
+                    <span class="qs-card-title">NAV Curve vs DCA Baseline</span>
+                </div>
+                <div class="qs-chart-placeholder">
+                    <span>📈</span>
+                    <span>Equity curve renders here after full implementation</span>
+                    <span style="font-size:11px;">Connect to BacktestAdapter data pipeline</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="qs-card" style="text-align:center;padding:48px 24px;">
+                <div style="font-size:36px;margin-bottom:12px;">📈</div>
+                <div style="font-size:15px;font-weight:600;margin-bottom:6px;">No Results Yet</div>
+                <div style="font-size:13px;color:var(--text-secondary);">Configure and run a backtest to see performance results here</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _paramSource = "champion";
+    private string _customParams = "";
+    private bool _running;
+    private bool _hasResult;
+    private string? _message;
+
+    private async Task RunBacktest()
+    {
+        _running = true;
+        _message = "Backtest initiated — this feature is coming in the next release.";
+        await Task.Delay(1500);
+        _hasResult = true;
+        _running = false;
+    }
+}

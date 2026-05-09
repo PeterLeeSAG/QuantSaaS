@@ -1,0 +1,63 @@
+@page "/templates"
+@rendermode InteractiveServer
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<PageTitle>Strategy Templates — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="margin-bottom:20px;">
+    <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">Strategy Templates</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin:0;">Choose a strategy to create your trading instance</p>
+</div>
+
+<div class="qs-grid qs-grid-3">
+    @foreach (var tpl in _templates)
+    {
+        <div class="qs-template-card" style="border-top-color:@tpl.Color;" @onclick='() => Nav.NavigateTo($"/instances/new?template={tpl.Id}")'>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <div style="font-size:24px;">@tpl.Icon</div>
+                <div>
+                    <div class="qs-template-name">@tpl.Name</div>
+                    <div style="font-size:11px;color:var(--text-muted);">@tpl.Exchange · @tpl.Pair</div>
+                </div>
+            </div>
+            <p class="qs-template-desc">@tpl.Description</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">
+                @foreach (var tag in tpl.Tags)
+                {
+                    <span class="qs-badge qs-badge-champion" style="font-size:10px;">@tag</span>
+                }
+            </div>
+            <div style="margin-top:14px;">
+                <button class="qs-btn qs-btn-primary qs-btn-sm">Create Instance →</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private record StrategyTemplate(string Id, string Name, string Description, string Exchange, string Pair, string Color, string Icon, List<string> Tags);
+
+    private readonly List<StrategyTemplate> _templates = new()
+    {
+        new("btc-spot-dca", "Dynamic Balance Strategy",
+            "An adaptive DCA strategy that intelligently allocates capital based on market conditions. Maintains a core long-term position while deploying active capital during opportunistic windows.",
+            "Bitget", "BTC/USDT",
+            "#2dd4bf", "₿",
+            new() { "Spot", "BTC", "DCA", "Parameter Optimized" }),
+
+        new("eth-spot-dca", "Ethereum Accumulator",
+            "Similar adaptive accumulation strategy optimized for Ethereum's volatility profile. Suits medium-to-long-term holders seeking systematic entry improvements.",
+            "Bitget", "ETH/USDT",
+            "#0ea5e9", "Ξ",
+            new() { "Spot", "ETH", "DCA", "Coming Soon" }),
+
+        new("multi-asset", "Portfolio Diversifier",
+            "Multi-asset allocation strategy managing BTC and ETH simultaneously with cross-asset risk management. Coming in a future release.",
+            "Bitget", "BTC+ETH",
+            "#ff8c6b", "⚖",
+            new() { "Multi-Asset", "Coming Soon" }),
+    };
+}

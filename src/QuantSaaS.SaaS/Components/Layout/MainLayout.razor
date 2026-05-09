@@ -1,23 +1,129 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppState AppState
+@inject NavigationManager Nav
+@inject ApiClient Api
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="qs-app-shell">
+    @if (AppState.IsAuthenticated)
+    {
+        <!-- Sidebar -->
+        <aside class="qs-sidebar">
+            <div class="qs-sidebar-brand">
+                <div class="qs-brand-icon">⚡</div>
+                <span class="qs-brand-name">QuantSaaS</span>
+            </div>
+            <nav class="qs-nav">
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/" Match="NavLinkMatch.All" ActiveClass="active">
+                        <span class="qs-nav-icon">📊</span> Dashboard
+                    </NavLink>
+                </div>
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/templates" ActiveClass="active">
+                        <span class="qs-nav-icon">📋</span> Strategy Templates
+                    </NavLink>
+                </div>
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/instances" ActiveClass="active">
+                        <span class="qs-nav-icon">🤖</span> My Instances
+                    </NavLink>
+                </div>
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/evolution" ActiveClass="active">
+                        <span class="qs-nav-icon">🧬</span> Optimization Lab
+                    </NavLink>
+                </div>
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/agents" ActiveClass="active">
+                        <span class="qs-nav-icon">🔌</span> Agent Status
+                    </NavLink>
+                </div>
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/backtesting" ActiveClass="active">
+                        <span class="qs-nav-icon">📈</span> Backtesting
+                    </NavLink>
+                </div>
+            </nav>
+            <div class="qs-nav-footer">
+                <div class="qs-nav-item">
+                    <NavLink class="qs-nav-link" href="/settings" ActiveClass="active">
+                        <span class="qs-nav-icon">⚙️</span> Settings
+                    </NavLink>
+                </div>
+            </div>
+        </aside>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <!-- Main area -->
+        <div class="qs-main">
+            <!-- Topbar -->
+            <div class="qs-topbar">
+                <span class="qs-topbar-title">@_pageTitle</span>
+                <div class="qs-topbar-actions">
+                    @if (_status != null)
+                    {
+                        <div class="qs-status-indicator">
+                            <div class="qs-dot @(_status.EngineStatus == "running" ? "online" : "")"></div>
+                            <span>@(_status.EngineStatus == "running" ? "Engine Running" : "Engine Paused")</span>
+                        </div>
+                        <div class="qs-status-indicator">
+                            <div class="qs-dot @(_status.AgentConnected ? "online" : "")"></div>
+                            <span>@(_status.AgentConnected ? "Agent Online" : "Agent Offline")</span>
+                        </div>
+                    }
+                    <span style="font-size:12px;color:var(--text-muted)">@AppState.UserEmail</span>
+                    <button class="qs-btn qs-btn-ghost qs-btn-sm" @onclick="Logout">Sign out</button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <main class="qs-content qs-page-enter">
+                @Body
+            </main>
         </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+    }
+    else
+    {
+        @Body
+    }
 </div>
 
 <div id="blazor-error-ui">
-    An unhandled error has occurred.
+    An unhandled error occurred.
     <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private SystemStatusResponse? _status;
+    private string _pageTitle = "QuantSaaS";
+    private System.Timers.Timer? _timer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AppState.IsAuthenticated)
+        {
+            await RefreshStatus();
+            _timer = new System.Timers.Timer(30_000);
+            _timer.Elapsed += async (_, _) =>
+            {
+                await RefreshStatus();
+                await InvokeAsync(StateHasChanged);
+            };
+            _timer.Start();
+        }
+    }
+
+    private async Task RefreshStatus()
+    {
+        _status = await Api.GetSystemStatusAsync();
+        StateHasChanged();
+    }
+
+    private void Logout()
+    {
+        AppState.ClearAuth();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

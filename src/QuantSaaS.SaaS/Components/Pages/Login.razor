@@ -1,0 +1,78 @@
+@page "/login"
+@layout QuantSaaS.SaaS.Components.Layout.BlankLayout
+@rendermode InteractiveServer
+@inject ApiClient Api
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<PageTitle>Sign In — QuantSaaS</PageTitle>
+
+<div class="qs-auth-page">
+    <div class="qs-auth-box">
+        <div class="qs-auth-logo">
+            <div class="brand-icon">⚡</div>
+            <div class="qs-auth-title">QuantSaaS</div>
+            <div class="qs-auth-sub">Sign in to your account</div>
+        </div>
+
+        @if (_error != null)
+        {
+            <div class="qs-alert qs-alert-error">⚠ @_error</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <div class="qs-form-group">
+                <label class="qs-label">Email</label>
+                <InputText @bind-Value="_model.Email" class="qs-input" placeholder="you@example.com" type="email" />
+            </div>
+            <div class="qs-form-group">
+                <label class="qs-label">Password</label>
+                <InputText @bind-Value="_model.Password" class="qs-input" placeholder="••••••••" type="password" />
+            </div>
+            <button type="submit" class="qs-btn qs-btn-primary" style="width:100%;justify-content:center;margin-top:8px;" disabled="@_loading">
+                @(_loading ? "Signing in…" : "Sign In")
+            </button>
+        </EditForm>
+
+        <hr class="qs-divider" style="margin-top:20px;" />
+        <p style="text-align:center;font-size:13px;color:var(--text-muted)">
+            Don't have an account? <a href="/register">Register</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private LoginModel _model = new();
+    private bool _loading;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (AppState.IsAuthenticated)
+            Nav.NavigateTo("/");
+    }
+
+    private async Task HandleLogin()
+    {
+        _loading = true;
+        _error = null;
+        var (ok, token, email, userId, error) = await Api.LoginAsync(_model.Email, _model.Password);
+        _loading = false;
+        if (ok && token != null && email != null)
+        {
+            AppState.SetAuth(token, email, userId);
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            _error = error ?? "Login failed";
+        }
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

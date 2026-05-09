@@ -1,0 +1,128 @@
+@page "/instances"
+@rendermode InteractiveServer
+@inject AppState AppState
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>My Instances — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+        <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">My Instances</h2>
+        <p style="color:var(--text-secondary);font-size:13px;margin:0;">All your active strategy instances</p>
+    </div>
+    <a href="/instances/new" class="qs-btn qs-btn-primary">+ Create Instance</a>
+</div>
+
+@if (_loading)
+{
+    @for (var i = 0; i < 3; i++) {
+        <div class="qs-skeleton" style="height:64px;border-radius:10px;margin-bottom:8px;"></div>
+    }
+}
+else if (_instances.Count == 0)
+{
+    <div class="qs-card" style="text-align:center;padding:60px 24px;">
+        <div style="font-size:40px;margin-bottom:12px;">🤖</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">No instances yet</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+            Create your first strategy instance to begin automated trading
+        </div>
+        <a href="/instances/new" class="qs-btn qs-btn-primary">Create First Instance</a>
+    </div>
+}
+else
+{
+    <div class="qs-card" style="padding:0;overflow:hidden;">
+        <table class="qs-table">
+            <thead>
+                <tr>
+                    <th>Pair / Strategy</th>
+                    <th>Status</th>
+                    <th>Total Assets</th>
+                    <th>Fund Quota</th>
+                    <th>Created</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inst in _instances)
+                {
+                    <tr>
+                        <td>
+                            <div style="font-weight:600;">@inst.Symbol</div>
+                            <div style="font-size:11px;color:var(--text-muted);">@inst.AggregationPeriod aggregation</div>
+                        </td>
+                        <td><span class="qs-badge @BadgeClass(inst.Status)">@StatusLabel(inst.Status)</span></td>
+                        <td>
+                            @if (inst.TotalEquity.HasValue)
+                            {
+                                <span class="mono">$@inst.TotalEquity.Value.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span style="color:var(--text-muted)">—</span>
+                            }
+                        </td>
+                        <td class="mono">@inst.FundQuota.ToString("N0") USDT</td>
+                        <td style="color:var(--text-secondary);font-size:12px;">@RelativeTime(inst.CreatedAt)</td>
+                        <td style="text-align:right;">
+                            <div style="display:flex;justify-content:flex-end;gap:6px;align-items:center;">
+                                <a href="/?instance=@inst.Id" class="qs-btn qs-btn-ghost qs-btn-xs">Dashboard</a>
+                                <a href="/evolution?instance=@inst.Id" class="qs-btn qs-btn-ghost qs-btn-xs">Optimize</a>
+                                @if (_confirmDelete == inst.Id)
+                                {
+                                    <button class="qs-btn qs-btn-danger-ghost qs-btn-xs" @onclick="() => ConfirmDelete(inst.Id)">Confirm</button>
+                                    <button class="qs-btn qs-btn-ghost qs-btn-xs" @onclick="() => _confirmDelete = Guid.Empty">Cancel</button>
+                                }
+                                else
+                                {
+                                    <button class="qs-btn qs-btn-danger-ghost qs-btn-xs" @onclick="() => _confirmDelete = inst.Id">Delete</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<InstanceSummary> _instances = new();
+    private bool _loading = true;
+    private Guid _confirmDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated) return;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _instances = await Api.GetInstancesAsync();
+        _loading = false;
+    }
+
+    private async Task ConfirmDelete(Guid id)
+    {
+        await Api.DeleteInstanceAsync(id);
+        _confirmDelete = Guid.Empty;
+        await Load();
+    }
+
+    private static string BadgeClass(string s) => s switch { "RUNNING" => "qs-badge-running", "ERROR" => "qs-badge-error", _ => "qs-badge-stopped" };
+    private static string StatusLabel(string s) => s switch { "RUNNING" => "Running", "STOPPED" => "Paused", "ERROR" => "Error", _ => s };
+
+    private static string RelativeTime(DateTime dt)
+    {
+        var diff = DateTime.UtcNow - dt;
+        if (diff.TotalDays >= 1) return $"{(int)diff.TotalDays}d ago";
+        if (diff.TotalHours >= 1) return $"{(int)diff.TotalHours}h ago";
+        return $"{(int)diff.TotalMinutes}m ago";
+    }
+}
