@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QuantSaaS.Evolution")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c45994038e208da1951544fe58ebe0f9f2ce891")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ce63ec04635c613dc705f98b73f219bbad60db73")]
 [assembly: System.Reflection.AssemblyProductAttribute("QuantSaaS.Evolution")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QuantSaaS.Evolution")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -43,9 +43,11 @@ builder.Services.AddScoped<AppState>();
 // API client for Blazor → REST calls (in-process, uses loopback)
 builder.Services.AddHttpClient("self", (sp, client) =>
 {
+    // Resolve the actual HTTP listen address from ASPNETCORE_URLS or config
     var cfg = sp.GetRequiredService<IConfiguration>();
-    var port = cfg["Server:Port"] ?? "5292";
-    client.BaseAddress = new Uri($"http://localhost:{port}/");
+    var urls = cfg["ASPNETCORE_URLS"] ?? cfg["urls"] ?? "http://localhost:5292";
+    var httpUrl = urls.Split(';').FirstOrDefault(u => u.StartsWith("http://")) ?? urls.Split(';').First();
+    client.BaseAddress = new Uri(httpUrl.TrimEnd('/') + "/");
 });
 builder.Services.AddScoped<ApiClient>(sp =>
 {

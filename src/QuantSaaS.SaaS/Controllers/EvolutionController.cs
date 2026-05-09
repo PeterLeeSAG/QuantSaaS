@@ -6,6 +6,12 @@ using System.Text.Json;
 
 namespace QuantSaaS.SaaS.Controllers;
 
+file static class JsonElementExtensions
+{
+    public static decimal GetDecimalOrDefault(this JsonElement element, string propertyName, decimal defaultValue = 0) =>
+        element.TryGetProperty(propertyName, out var prop) ? prop.GetDecimal() : defaultValue;
+}
+
 [ApiController]
 [Route("api/v1/evolution")]
 public class EvolutionController : ControllerBase
@@ -61,10 +67,10 @@ public class EvolutionController : ControllerBase
                 if (arr != null)
                     ws = arr.Select(e => new WindowScoreDto(
                         e.GetProperty("label").GetString() ?? "",
-                        e.TryGetProperty("weight", out var w) ? w.GetDecimal() : 0,
-                        e.TryGetProperty("sliceScore", out var ss) ? ss.GetDecimal() : 0,
-                        e.TryGetProperty("alpha", out var a) ? a.GetDecimal() : 0,
-                        e.TryGetProperty("maxDrawdown", out var dd) ? dd.GetDecimal() : 0
+                        e.GetDecimalOrDefault("weight"),
+                        e.GetDecimalOrDefault("sliceScore"),
+                        e.GetDecimalOrDefault("alpha"),
+                        e.GetDecimalOrDefault("maxDrawdown")
                     )).ToList();
             }
             catch { }
