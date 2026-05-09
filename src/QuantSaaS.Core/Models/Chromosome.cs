@@ -1,11 +1,6 @@
 namespace QuantSaaS.Core.Models;
 
 /// <summary>
-/// Base chromosome. Subclassed by strategy-specific implementations.
-/// All fields are mutable so GA operators (Mutate, Crossover) can modify in place.
-/// Clamp() must be called after every mutation/crossover to enforce bounds.
-/// </summary>
-/// <summary>
 /// Base chromosome for all GA strategies.
 /// Subclassed by strategy-specific implementations (e.g., <see cref="QuantSaaS.Strategy.Stock.StockChromosome"/>).
 /// Contains parameters shared across all strategies (Sigmoid engine, wedge filter, order sizing).
