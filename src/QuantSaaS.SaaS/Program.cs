@@ -37,6 +37,23 @@ builder.Services.AddSingleton<WsHub>();
 builder.Services.AddSingleton<InstanceManager>();
 builder.Services.AddHostedService<CronTickService>();
 
+// Blazor state (scoped per circuit)
+builder.Services.AddScoped<AppState>();
+
+// API client for Blazor → REST calls (in-process, uses loopback)
+builder.Services.AddHttpClient("self", (sp, client) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var port = cfg["Server:Port"] ?? "5292";
+    client.BaseAddress = new Uri($"http://localhost:{port}/");
+});
+builder.Services.AddScoped<ApiClient>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var appState = sp.GetRequiredService<AppState>();
+    return new ApiClient(factory.CreateClient("self"), appState);
+});
+
 // JWT Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
