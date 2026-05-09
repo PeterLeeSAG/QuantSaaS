@@ -47,3 +47,6 @@
 /home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/obj/Debug/net8.0/QuantSaaS.SaaS.pdb
 /home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/obj/Debug/net8.0/QuantSaaS.SaaS.genruntimeconfig.cache
 /home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/obj/Debug/net8.0/ref/QuantSaaS.SaaS.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/bin/Debug/net8.0/QuantSaaS.SaaS.staticwebassets.runtime.json
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/obj/Debug/net8.0/QuantSaaS.SaaS.RazorAssemblyInfo.cache
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/obj/Debug/net8.0/QuantSaaS.SaaS.RazorAssemblyInfo.cs

@@ -1,0 +1,131 @@
+@page
+@model QuantSaaS.SaaS.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Portfolio overview · @DateTime.UtcNow.ToString("dddd, MMM dd yyyy")</div>
+    </div>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">@QuantSaaS.Core.Models.UserTerms.TotalEquity</div>
+            <div class="kpi-value">$@Model.Vm.TotalEquity.ToString("N0")</div>
+            <div class="kpi-sub kpi-green">↑ All instances</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">Active Instances</div>
+            <div class="kpi-value">@Model.Vm.ActiveInstances</div>
+            <div class="kpi-sub">Running strategies</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">Today's Trades</div>
+            <div class="kpi-value">@Model.Vm.TodayTrades</div>
+            <div class="kpi-sub">Executed orders</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">@QuantSaaS.Core.Models.UserTerms.SpendableUSDT</div>
+            <div class="kpi-value">$@Model.Vm.AvailableFunds.ToString("N0")</div>
+            <div class="kpi-sub">Cash across accounts</div>
+        </div>
+    </div>
+</div>
+
+<!-- Equity curve chart -->
+<div class="dash-card mb-4">
+    <div class="section-title mb-3">Equity Curve (30 days)</div>
+    <div class="chart-wrapper">
+        <canvas id="equityChart"></canvas>
+    </div>
+</div>
+
+<!-- Active instances table -->
+<div class="dash-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="section-title mb-0">Active Instances</div>
+        <a asp-page="/Instances/Index" class="btn-outline">View all</a>
+    </div>
+    <table class="dark-table">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Asset</th>
+                <th>Status</th>
+                <th>@QuantSaaS.Core.Models.UserTerms.TotalEquity</th>
+                <th>Last Tick</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var inst in Model.Vm.Instances)
+            {
+                <tr>
+                    <td><a asp-page="/Instances/Detail" asp-route-id="@inst.Id" style="color:var(--accent);text-decoration:none;">@inst.Symbol</a></td>
+                    <td>
+                        <span class="pill badge-asset-@inst.AssetClass.ToString().ToLower()">@inst.AssetClass</span>
+                    </td>
+                    <td>
+                        <span class="pill badge-status-@inst.Status.ToLower()">
+                            @(inst.Status == "running" ? "● " + QuantSaaS.Core.Models.UserTerms.Running
+                              : inst.Status == "error"   ? "● " + QuantSaaS.Core.Models.UserTerms.Error
+                                                         : QuantSaaS.Core.Models.UserTerms.Stopped)
+                        </span>
+                    </td>
+                    <td>$@inst.Equity.ToString("N2")</td>
+                    <td style="color:var(--text-muted);font-size:0.78rem;">
+                        @(inst.LastTickAt.HasValue ? inst.LastTickAt.Value.ToString("HH:mm:ss") + " UTC" : "—")
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+    const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Vm.EquityLabels));
+    const data   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Vm.EquityCurve));
+
+    const ctx = document.getElementById('equityChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+    gradient.addColorStop(0,   'rgba(78,154,241,0.3)');
+    gradient.addColorStop(1,   'rgba(78,154,241,0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                borderColor: '#4e9af1',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(42,53,80,0.5)' }, ticks: { color: '#8896ab', maxTicksLimit: 7 } },
+                y: { grid: { color: 'rgba(42,53,80,0.5)' }, ticks: { color: '#8896ab', callback: v => '$' + v.toLocaleString() } }
+            }
+        }
+    });
+</script>
+}

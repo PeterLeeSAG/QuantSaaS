@@ -1,0 +1,92 @@
+@page
+@model QuantSaaS.SaaS.Pages.Lab.IndexModel
+@{
+    ViewData["Title"] = "Evolution Lab";
+    ViewData["ActivePage"] = "Lab";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">@QuantSaaS.Core.Models.UserTerms.EvolutionTask</div>
+        <div class="page-sub">Genetic algorithm parameter optimisation</div>
+    </div>
+    <button class="btn-accent">+ New Optimisation</button>
+</div>
+
+<!-- Champions -->
+<div class="section-title">@QuantSaaS.Core.Models.UserTerms.Champion</div>
+<div class="row g-3 mb-4">
+    @foreach (var gene in Model.Vm.Champions)
+    {
+        <div class="col-md-4">
+            <div class="dash-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div style="font-weight:700;">@gene.Symbol</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted);">@gene.AssetClass · @gene.EvolvedAt.ToString("MMM dd, yyyy")</div>
+                    </div>
+                    <span class="pill badge-role-@gene.Role.ToLower()">@QuantSaaS.Core.Models.UserTerms.Champion</span>
+                </div>
+                <div class="row g-2 mt-1">
+                    <div class="col-6">
+                        <div style="font-size:0.7rem;color:var(--text-muted);">Score</div>
+                        <div style="font-weight:700;color:var(--green);">@gene.ScoreTotal.ToString("F3")</div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size:0.7rem;color:var(--text-muted);">Max Drawdown</div>
+                        <div style="font-weight:700;color:var(--red);">@gene.MaxDrawdown.ToString("P1")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Evolution tasks -->
+<div class="dash-card">
+    <div class="section-title mb-3">Recent Tasks</div>
+    <table class="dark-table">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Asset</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Started</th>
+                <th>Completed</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in Model.Vm.Tasks)
+            {
+                <tr>
+                    <td style="font-weight:600;">@task.Symbol</td>
+                    <td><span class="pill badge-asset-@task.AssetClass.ToString().ToLower()">@task.AssetClass</span></td>
+                    <td>
+                        @{
+                            var statusClass = task.Status switch {
+                                "completed" => "badge-status-running",
+                                "running"   => "badge-asset-crypto",
+                                "failed"    => "badge-status-error",
+                                _           => "badge-status-stopped"
+                            };
+                        }
+                        <span class="pill @statusClass">@task.Status</span>
+                    </td>
+                    <td style="width:160px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress-dark flex-grow-1">
+                                <div class="progress-fill" style="width:@task.Progress%"></div>
+                            </div>
+                            <span style="font-size:0.72rem;color:var(--text-muted);min-width:30px;">@task.Progress%</span>
+                        </div>
+                    </td>
+                    <td style="color:var(--text-muted);font-size:0.78rem;">@task.CreatedAt.ToString("MMM dd HH:mm")</td>
+                    <td style="color:var(--text-muted);font-size:0.78rem;">
+                        @(task.CompletedAt.HasValue ? task.CompletedAt.Value.ToString("MMM dd HH:mm") : "—")
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

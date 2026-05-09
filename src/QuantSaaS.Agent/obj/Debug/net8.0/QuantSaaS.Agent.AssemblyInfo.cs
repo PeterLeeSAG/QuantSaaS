@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QuantSaaS.Agent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9fc24e255f53f15e9a83e407b5db5fae2beade6e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+13da5e350680f80e8aa0569ce7c5a0faf28b9343")]
 [assembly: System.Reflection.AssemblyProductAttribute("QuantSaaS.Agent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QuantSaaS.Agent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

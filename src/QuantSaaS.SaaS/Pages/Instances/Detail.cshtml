@@ -1,0 +1,144 @@
+@page "{id:guid}"
+@model QuantSaaS.SaaS.Pages.Instances.DetailModel
+@{
+    ViewData["Title"] = Model.Vm.Symbol + " Detail";
+    ViewData["ActivePage"] = "Instances";
+}
+
+<div class="page-header">
+    <div>
+        <a asp-page="/Instances/Index" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none;">← Instances</a>
+        <div class="page-title mt-1">
+            @Model.Vm.Symbol
+            <span class="pill badge-asset-@Model.Vm.AssetClass.ToString().ToLower() ms-2" style="font-size:0.7rem;">@Model.Vm.AssetClass</span>
+            <span class="pill badge-status-@Model.Vm.Status.ToLower() ms-1" style="font-size:0.7rem;">
+                @(Model.Vm.Status == "running" ? QuantSaaS.Core.Models.UserTerms.Running
+                  : Model.Vm.Status == "error"  ? QuantSaaS.Core.Models.UserTerms.Error
+                                                 : QuantSaaS.Core.Models.UserTerms.Stopped)
+            </span>
+        </div>
+        <div class="page-sub">@Model.Vm.BrokerType.ToUpperInvariant() · Created @Model.Vm.CreatedAt.ToString("MMM dd, yyyy")</div>
+    </div>
+</div>
+
+<!-- Portfolio KPIs -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">@QuantSaaS.Core.Models.UserTerms.TotalEquity</div>
+            <div class="kpi-value">$@Model.Vm.TotalEquity.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">@QuantSaaS.Core.Models.UserTerms.SpendableUSDT</div>
+            <div class="kpi-value">$@Model.Vm.AvailableFunds.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">@QuantSaaS.Core.Models.UserTerms.DeadBTC</div>
+            <div class="kpi-value">@Model.Vm.LongTermHoldingsQty.ToString("F4")</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="kpi-card">
+            <div class="kpi-label">@QuantSaaS.Core.Models.UserTerms.FloatBTC</div>
+            <div class="kpi-value">@Model.Vm.ActivePositionQty.ToString("F4")</div>
+        </div>
+    </div>
+</div>
+
+<!-- Equity Curve -->
+<div class="dash-card mb-4">
+    <div class="section-title mb-3">Equity Curve (30 days)</div>
+    <div class="chart-wrapper">
+        <canvas id="instanceEquityChart"></canvas>
+    </div>
+</div>
+
+<!-- Recent trades -->
+<div class="dash-card mb-4">
+    <div class="section-title mb-3">Recent Trades (last 20)</div>
+    <table class="dark-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Symbol</th>
+                <th>Action</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Fee</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in Model.Vm.RecentTrades)
+            {
+                <tr>
+                    <td style="color:var(--text-muted);font-size:0.78rem;">@t.FilledAt.ToString("MMM dd HH:mm")</td>
+                    <td>@t.Symbol</td>
+                    <td><span class="pill badge-action-@t.Action.ToLower()">@t.Action</span></td>
+                    <td>@t.FilledQty.ToString("F4")</td>
+                    <td>$@t.FilledPrice.ToString("N2")</td>
+                    <td style="color:var(--text-muted);">$@t.Fee.ToString("N4")</td>
+                    <td><span class="pill badge-status-running" style="font-size:0.68rem;">@t.Status</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.Vm.PendingSettlements.Any())
+{
+    <div class="dash-card">
+        <div class="section-title mb-3">@QuantSaaS.Core.Models.UserTerms.PendingSettlement</div>
+        <table class="dark-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Amount</th>
+                    <th>Settlement Date</th>
+                    <th>Settled</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Vm.PendingSettlements)
+                {
+                    <tr>
+                        <td style="font-size:0.78rem;color:var(--text-muted);">@s.ClientOrderId</td>
+                        <td>$@s.Amount.ToString("N2")</td>
+                        <td>@s.SettlementDateUtc.ToString("MMM dd, yyyy")</td>
+                        <td>@(s.IsSettled ? "✓" : "Pending")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+<script>
+    const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Vm.EquityLabels));
+    const data   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Vm.EquityCurve));
+    const ctx = document.getElementById('instanceEquityChart').getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 240);
+    grad.addColorStop(0, 'rgba(0,214,143,0.25)');
+    grad.addColorStop(1, 'rgba(0,214,143,0)');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{ data, borderColor: '#00d68f', backgroundColor: grad, borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(42,53,80,0.5)' }, ticks: { color: '#8896ab', maxTicksLimit: 7 } },
+                y: { grid: { color: 'rgba(42,53,80,0.5)' }, ticks: { color: '#8896ab', callback: v => '$' + v.toLocaleString() } }
+            }
+        }
+    });
+</script>
+}

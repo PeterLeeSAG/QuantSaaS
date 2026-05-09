@@ -21,3 +21,39 @@ build_property.MSBuildProjectDirectory = /home/runner/work/QuantSaaS/QuantSaaS/s
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Instances/Detail.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSW5zdGFuY2VzL0RldGFpbC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Instances/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSW5zdGFuY2VzL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Lab/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGFiL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Settings/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2V0dGluZ3MvSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2hhcmVkL19MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/Trades/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVHJhZGVzL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.SaaS/Pages/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
