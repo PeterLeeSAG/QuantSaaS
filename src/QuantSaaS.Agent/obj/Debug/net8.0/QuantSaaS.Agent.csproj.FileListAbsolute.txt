@@ -21,3 +21,7 @@
 /home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/obj/Debug/net8.0/QuantSaaS.Agent.pdb
 /home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/obj/Debug/net8.0/QuantSaaS.Agent.genruntimeconfig.cache
 /home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/obj/Debug/net8.0/ref/QuantSaaS.Agent.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/bin/Debug/net8.0/Dapper.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/bin/Debug/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/bin/Debug/net8.0/Microsoft.Extensions.Logging.Abstractions.dll
+/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/bin/Debug/net8.0/Npgsql.dll

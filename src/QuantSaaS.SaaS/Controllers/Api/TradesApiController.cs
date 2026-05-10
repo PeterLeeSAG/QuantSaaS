@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using QuantSaaS.Core.Models;
+using QuantSaaS.Infrastructure.Data;
+using QuantSaaS.Infrastructure.Services;
 
 namespace QuantSaaS.SaaS.Controllers.Api;
 
@@ -7,42 +8,29 @@ namespace QuantSaaS.SaaS.Controllers.Api;
 [Route("api/trades")]
 public class TradesApiController : ControllerBase
 {
-    [HttpGet]
-    public IActionResult GetTrades([FromQuery] string? symbol, [FromQuery] int page = 1)
+    private readonly ITradeService _trades;
+
+    public TradesApiController(ITradeService trades)
     {
-        const int pageSize = 25;
-        var rng = new Random(7);
-        var symbols = new[] { ("BTC/USDT", "Crypto"), ("ETH/USDT", "Crypto"), ("AAPL", "Stock"), ("SPY", "ETF") };
+        _trades = trades;
+    }
 
-        var all = Enumerable.Range(0, 120).Select(i =>
-        {
-            var (sym, cls) = symbols[i % symbols.Length];
-            return new
-            {
-                symbol = sym,
-                assetClass = cls,
-                action = i % 3 == 0 ? "SELL" : "BUY",
-                filledQty = Math.Round(rng.NextDouble() * 0.5 + 0.001, 5),
-                filledPrice = Math.Round(cls == "Crypto" ? 60_000 + rng.NextDouble() * 3000 - 1500 : 150 + rng.NextDouble() * 50, 2),
-                fee = Math.Round(rng.NextDouble() * 1.5, 4),
-                status = "filled",
-                filledAt = DateTime.UtcNow.AddHours(-i * 4)
-            };
-        }).ToList();
-
-        if (!string.IsNullOrWhiteSpace(symbol))
-            all = all.Where(t => t.symbol.Contains(symbol, StringComparison.OrdinalIgnoreCase)).ToList();
-
-        var total = all.Count;
-        var pages = (int)Math.Ceiling(total / (double)pageSize);
-        page = Math.Clamp(page, 1, Math.Max(1, pages));
-
+    [HttpGet]
+    public async Task<IActionResult> GetTrades(
+        [FromQuery] Guid userId,
+        [FromQuery] string? symbol,
+        [FromQuery] string? action,
+        [FromQuery] int page = 1,
+        CancellationToken ct = default)
+    {
+        var effectiveUserId = userId == Guid.Empty ? DbInitializer.SeedUserId : userId;
+        var result = await _trades.GetPagedAsync(effectiveUserId, symbol, action, page, ct);
         return Ok(new
         {
-            page,
-            totalPages = pages,
-            totalCount = total,
-            trades = all.Skip((page - 1) * pageSize).Take(pageSize)
+            page        = result.Page,
+            totalPages  = result.TotalPages,
+            totalCount  = result.TotalCount,
+            trades      = result.Trades
         });
     }
 }

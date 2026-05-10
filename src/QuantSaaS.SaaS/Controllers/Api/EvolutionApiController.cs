@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using QuantSaaS.Infrastructure.Data;
+using QuantSaaS.Infrastructure.Services;
 
 namespace QuantSaaS.SaaS.Controllers.Api;
 
@@ -6,14 +8,20 @@ namespace QuantSaaS.SaaS.Controllers.Api;
 [Route("api/evolution")]
 public class EvolutionApiController : ControllerBase
 {
-    [HttpGet("tasks")]
-    public IActionResult GetTasks()
+    private readonly IEvolutionService _evolution;
+
+    public EvolutionApiController(IEvolutionService evolution)
     {
-        return Ok(new[]
-        {
-            new { id = Guid.NewGuid(), symbol = "BTC/USDT", assetClass = "Crypto", status = "completed", progress = 100, createdAt = DateTime.UtcNow.AddDays(-5) },
-            new { id = Guid.NewGuid(), symbol = "SOL/USDT", assetClass = "Crypto", status = "running",   progress = 63,  createdAt = DateTime.UtcNow.AddHours(-2) },
-            new { id = Guid.NewGuid(), symbol = "AAPL",     assetClass = "Stock",  status = "pending",   progress = 0,   createdAt = DateTime.UtcNow.AddMinutes(-30) },
-        });
+        _evolution = evolution;
+    }
+
+    [HttpGet("tasks")]
+    public async Task<IActionResult> GetTasks(
+        [FromQuery] Guid userId,
+        CancellationToken ct)
+    {
+        var effectiveUserId = userId == Guid.Empty ? DbInitializer.SeedUserId : userId;
+        var lab = await _evolution.GetLabAsync(effectiveUserId, ct);
+        return Ok(new { tasks = lab.Tasks, champions = lab.Champions });
     }
 }

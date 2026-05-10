@@ -234,3 +234,16 @@ public class AuditLog
     public string PayloadJson { get; set; } = "{}";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// Daily NAV snapshot used to render equity curves.
+/// A null InstanceId denotes an aggregate (user-level) snapshot.
+/// </summary>
+public class EquitySnapshot
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public Guid? InstanceId { get; set; }   // null = user aggregate
+    public DateTime DateUtc { get; set; }
+    public decimal Equity { get; set; }
+}

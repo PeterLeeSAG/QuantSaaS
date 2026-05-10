@@ -20,6 +20,14 @@
           "QuantSaaS.SaaS.dll": {}
         }
       },
+      "Dapper/2.1.72": {
+        "runtime": {
+          "lib/net8.0/Dapper.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.1.72.10375"
+          }
+        }
+      },
       "Microsoft.AspNetCore.OpenApi/8.0.25": {
         "dependencies": {
           "Microsoft.OpenApi": "1.6.14"
@@ -31,7 +39,6 @@
           }
         }
       },
-      "Microsoft.Extensions.ApiDescription.Server/6.0.5": {},
       "Microsoft.Extensions.Configuration.Abstractions/10.0.7": {
         "dependencies": {
           "Microsoft.Extensions.Primitives": "10.0.7"
@@ -59,9 +66,16 @@
           }
         }
       },
+      "Npgsql/8.0.5": {
+        "runtime": {
+          "lib/net8.0/Npgsql.dll": {
+            "assemblyVersion": "8.0.5.0",
+            "fileVersion": "8.0.5.0"
+          }
+        }
+      },
       "Swashbuckle.AspNetCore/6.6.2": {
         "dependencies": {
-          "Microsoft.Extensions.ApiDescription.Server": "6.0.5",
           "Swashbuckle.AspNetCore.Swagger": "6.6.2",
           "Swashbuckle.AspNetCore.SwaggerGen": "6.6.2",
           "Swashbuckle.AspNetCore.SwaggerUI": "6.6.2"
@@ -123,6 +137,8 @@
       },
       "QuantSaaS.Infrastructure/1.0.0": {
         "dependencies": {
+          "Dapper": "2.1.72",
+          "Npgsql": "8.0.5",
           "QuantSaaS.Core": "1.0.0"
         },
         "runtime": {
@@ -163,19 +179,19 @@
       "serviceable": false,
       "sha512": ""
     },
+    "Dapper/2.1.72": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ns4mGqQd9a/MhP8m6w556vVlZIa0/MfUu03zrxjZC/jlr1uVCsUac8bkdB+Fs98Llbd56rRSo1eZH5VVmeGZyw==",
+      "path": "dapper/2.1.72",
+      "hashPath": "dapper.2.1.72.nupkg.sha512"
+    },
     "Microsoft.AspNetCore.OpenApi/8.0.25": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-tdgVJejEelJ13udqJW+fHw9ZVHI8LjdeYrWdoD+nlsnKU4SMajpmx1sQEoqzb1tr9oWdD87agIkB5+x7VO3Lkw==",
       "path": "microsoft.aspnetcore.openapi/8.0.25",
       "hashPath": "microsoft.aspnetcore.openapi.8.0.25.nupkg.sha512"
-    },
-    "Microsoft.Extensions.ApiDescription.Server/6.0.5": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-Ckb5EDBUNJdFWyajfXzUIMRkhf52fHZOQuuZg/oiu8y7zDCVwD0iHhew6MnThjHmevanpxL3f5ci2TtHQEN6bw==",
-      "path": "microsoft.extensions.apidescription.server/6.0.5",
-      "hashPath": "microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512"
     },
     "Microsoft.Extensions.Configuration.Abstractions/10.0.7": {
       "type": "package",
@@ -197,6 +213,13 @@
       "sha512": "sha512-tTaBT8qjk3xINfESyOPE2rIellPvB7qpVqiWiyA/lACVvz+xOGiXhFUfohcx82NLbi5avzLW0lx+s6oAqQijfw==",
       "path": "microsoft.openapi/1.6.14",
       "hashPath": "microsoft.openapi.1.6.14.nupkg.sha512"
+    },
+    "Npgsql/8.0.5": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zRG5V8cyeZLpzJlKzFKjEwkRMYIYnHWJvEor2lWXeccS2E1G2nIWYYhnukB51iz5XsWSVEtqg3AxTWM0QJ6vfg==",
+      "path": "npgsql/8.0.5",
+      "hashPath": "npgsql.8.0.5.nupkg.sha512"
     },
     "Swashbuckle.AspNetCore/6.6.2": {
       "type": "package",

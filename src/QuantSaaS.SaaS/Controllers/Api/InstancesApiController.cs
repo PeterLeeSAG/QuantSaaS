@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using QuantSaaS.Core.Models;
+using QuantSaaS.Infrastructure.Data;
+using QuantSaaS.Infrastructure.Services;
 
 namespace QuantSaaS.SaaS.Controllers.Api;
 
@@ -7,33 +8,29 @@ namespace QuantSaaS.SaaS.Controllers.Api;
 [Route("api/instances")]
 public class InstancesApiController : ControllerBase
 {
-    private static readonly object[] StubInstances =
-    [
-        new { id = Guid.NewGuid(), symbol = "BTC/USDT", assetClass = "Crypto", brokerType = "okx",    status = "running", equity = 18_420.50 },
-        new { id = Guid.NewGuid(), symbol = "ETH/USDT", assetClass = "Crypto", brokerType = "okx",    status = "running", equity = 9_881.00  },
-        new { id = Guid.NewGuid(), symbol = "AAPL",     assetClass = "Stock",  brokerType = "alpaca", status = "stopped", equity = 12_340.00 },
-        new { id = Guid.NewGuid(), symbol = "SPY",      assetClass = "ETF",    brokerType = "ibkr",   status = "running", equity = 9_960.00  },
-        new { id = Guid.NewGuid(), symbol = "MSFT",     assetClass = "Stock",  brokerType = "alpaca", status = "error",   equity = 7_200.00  },
-    ];
+    private readonly IInstanceService _instances;
+
+    public InstancesApiController(IInstanceService instances)
+    {
+        _instances = instances;
+    }
 
     [HttpGet]
-    public IActionResult GetAll() => Ok(StubInstances);
+    public async Task<IActionResult> GetAll(
+        [FromQuery] Guid userId,
+        [FromQuery] string? tab,
+        CancellationToken ct)
+    {
+        var effectiveUserId = userId == Guid.Empty ? DbInitializer.SeedUserId : userId;
+        var list = await _instances.GetListAsync(effectiveUserId, tab, ct);
+        return Ok(list);
+    }
 
     [HttpGet("{id:guid}")]
-    public IActionResult GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        return Ok(new
-        {
-            id,
-            symbol = "BTC/USDT",
-            assetClass = "Crypto",
-            brokerType = "okx",
-            status = "running",
-            totalEquity = 18_420.50,
-            availableFunds = 4_820.30,
-            longTermHoldingsQty = 0.15423,
-            activePositionQty = 0.03201,
-            sealedQty = 0.05000
-        });
+        var detail = await _instances.GetDetailAsync(id, ct);
+        if (detail is null) return NotFound();
+        return Ok(detail);
     }
 }

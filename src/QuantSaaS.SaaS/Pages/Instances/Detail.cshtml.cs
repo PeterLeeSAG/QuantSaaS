@@ -1,60 +1,58 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using QuantSaaS.Core.Models;
+using QuantSaaS.Infrastructure.Services;
 using QuantSaaS.SaaS.ViewModels;
 
 namespace QuantSaaS.SaaS.Pages.Instances;
 
 public class DetailModel : PageModel
 {
+    private readonly IInstanceService _instances;
+
+    public DetailModel(IInstanceService instances) => _instances = instances;
+
     public InstanceDetailViewModel Vm { get; private set; } = new();
 
-    public IActionResult OnGet(Guid id)
+    public async Task<IActionResult> OnGetAsync(Guid id)
     {
-        var rng = new Random(id.GetHashCode());
-        var base_ = 15_000m + (decimal)(rng.NextDouble() * 5000);
-        var curve = new List<decimal>();
-        var labels = new List<string>();
-
-        for (int i = 29; i >= 0; i--)
-        {
-            var date = DateTime.UtcNow.AddDays(-i);
-            labels.Add(date.ToString("MMM dd"));
-            base_ += (decimal)(rng.NextDouble() * 200 - 80);
-            curve.Add(Math.Max(base_, 0));
-        }
-
-        var trades = Enumerable.Range(0, 20).Select(n => new TradeRow
-        {
-            Symbol = "BTC/USDT",
-            AssetClass = AssetClass.Crypto,
-            Action = n % 3 == 0 ? "SELL" : "BUY",
-            FilledQty = Math.Round((decimal)(rng.NextDouble() * 0.05 + 0.001), 5),
-            FilledPrice = Math.Round(60_000m + (decimal)(rng.NextDouble() * 2000 - 1000), 2),
-            Fee = Math.Round((decimal)(rng.NextDouble() * 0.5), 4),
-            Status = "filled",
-            FilledAt = DateTime.UtcNow.AddHours(-n * 2)
-        }).ToList();
+        var dto = await _instances.GetDetailAsync(id);
+        if (dto is null) return NotFound();
 
         Vm = new InstanceDetailViewModel
         {
-            Id = id,
-            Symbol = "BTC/USDT",
-            AssetClass = AssetClass.Crypto,
-            BrokerType = "okx",
-            Status = "running",
-            CreatedAt = DateTime.UtcNow.AddDays(-45),
-            LastTickAt = DateTime.UtcNow.AddMinutes(-3),
-            TotalEquity = curve.Last(),
-            AvailableFunds = 4_820.30m,
-            LongTermHoldingsQty = 0.15423m,
-            ActivePositionQty = 0.03201m,
-            SealedQty = 0.05000m,
-            PendingSettlementAmount = 0m,
-            EquityCurve = curve,
-            EquityLabels = labels,
-            RecentTrades = trades,
-            PendingSettlements = []
+            Id                      = dto.Id,
+            Symbol                  = dto.Symbol,
+            AssetClass              = dto.AssetClass,
+            BrokerType              = dto.BrokerType,
+            Status                  = dto.Status,
+            CreatedAt               = dto.CreatedAt,
+            LastTickAt              = dto.LastTickAt,
+            TotalEquity             = dto.TotalEquity,
+            AvailableFunds          = dto.AvailableFunds,
+            LongTermHoldingsQty     = dto.LongTermHoldingsQty,
+            ActivePositionQty       = dto.ActivePositionQty,
+            SealedQty               = dto.SealedQty,
+            PendingSettlementAmount = dto.PendingSettlementAmount,
+            EquityCurve             = dto.EquityCurve.ToList(),
+            EquityLabels            = dto.EquityLabels.ToList(),
+            RecentTrades            = dto.RecentTrades.Select(t => new TradeRow
+            {
+                Symbol       = t.Symbol,
+                AssetClass   = t.AssetClass,
+                Action       = t.Action,
+                FilledQty    = t.FilledQty,
+                FilledPrice  = t.FilledPrice,
+                Fee          = t.Fee,
+                Status       = t.Status,
+                FilledAt     = t.FilledAt
+            }).ToList(),
+            PendingSettlements      = dto.PendingSettlements.Select(s => new PendingSettlementRow
+            {
+                ClientOrderId      = s.ClientOrderId,
+                Amount             = s.Amount,
+                SettlementDateUtc  = s.SettlementDateUtc,
+                IsSettled          = s.IsSettled
+            }).ToList()
         };
 
         return Page();
