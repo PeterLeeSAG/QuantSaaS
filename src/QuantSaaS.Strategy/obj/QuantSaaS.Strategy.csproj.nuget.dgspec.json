@@ -1,32 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Strategy\\QuantSaaS.Strategy.csproj": {}
+    "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Strategy/QuantSaaS.Strategy.csproj": {}
   },
   "projects": {
-    "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj": {
+    "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj",
+        "projectUniqueName": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj",
         "projectName": "QuantSaaS.Core",
-        "projectPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj",
-        "packagesPath": "C:\\Users\\PETERLEE\\.nuget\\packages\\",
-        "outputPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\obj\\",
+        "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\PETERLEE\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/runner/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -45,7 +38,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net8.0": {
@@ -72,41 +65,34 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Quant\\QuantSaaS.Quant.csproj": {
+    "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/QuantSaaS.Quant.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Quant\\QuantSaaS.Quant.csproj",
+        "projectUniqueName": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/QuantSaaS.Quant.csproj",
         "projectName": "QuantSaaS.Quant",
-        "projectPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Quant\\QuantSaaS.Quant.csproj",
-        "packagesPath": "C:\\Users\\PETERLEE\\.nuget\\packages\\",
-        "outputPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Quant\\obj\\",
+        "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/QuantSaaS.Quant.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\PETERLEE\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/runner/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj": {
-                "projectPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj"
+              "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj": {
+                "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj"
               }
             }
           }
@@ -121,7 +107,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net8.0": {
@@ -142,44 +128,37 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Strategy\\QuantSaaS.Strategy.csproj": {
+    "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Strategy/QuantSaaS.Strategy.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Strategy\\QuantSaaS.Strategy.csproj",
+        "projectUniqueName": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Strategy/QuantSaaS.Strategy.csproj",
         "projectName": "QuantSaaS.Strategy",
-        "projectPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Strategy\\QuantSaaS.Strategy.csproj",
-        "packagesPath": "C:\\Users\\PETERLEE\\.nuget\\packages\\",
-        "outputPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Strategy\\obj\\",
+        "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Strategy/QuantSaaS.Strategy.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Strategy/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\PETERLEE\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/runner/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj": {
-                "projectPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Core\\QuantSaaS.Core.csproj"
+              "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj": {
+                "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj"
               },
-              "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Quant\\QuantSaaS.Quant.csproj": {
-                "projectPath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Quant\\QuantSaaS.Quant.csproj"
+              "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/QuantSaaS.Quant.csproj": {
+                "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Quant/QuantSaaS.Quant.csproj"
               }
             }
           }
@@ -194,7 +173,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net8.0": {
@@ -215,7 +194,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
