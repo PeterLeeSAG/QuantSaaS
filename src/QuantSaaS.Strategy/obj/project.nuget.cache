@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "1eFOxuvg8Tc=",
+  "dgSpecHash": "fZh0bc40Ze0=",
   "success": true,
-  "projectFilePath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Strategy/QuantSaaS.Strategy.csproj",
+  "projectFilePath": "C:\\Repos\\Self\\QuantSaaS\\src\\QuantSaaS.Strategy\\QuantSaaS.Strategy.csproj",
   "expectedPackageFiles": [
-    "/home/runner/.nuget/packages/microsoft.extensions.configuration.abstractions/10.0.7/microsoft.extensions.configuration.abstractions.10.0.7.nupkg.sha512",
-    "/home/runner/.nuget/packages/microsoft.extensions.primitives/10.0.7/microsoft.extensions.primitives.10.0.7.nupkg.sha512"
+    "C:\\Users\\PETERLEE\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\10.0.7\\microsoft.extensions.configuration.abstractions.10.0.7.nupkg.sha512",
+    "C:\\Users\\PETERLEE\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.7\\microsoft.extensions.primitives.10.0.7.nupkg.sha512"
   ],
   "logs": []
 }
