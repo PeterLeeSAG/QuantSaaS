@@ -10,7 +10,7 @@
         "projectUniqueName": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/QuantSaaS.Agent.csproj",
         "projectName": "QuantSaaS.Agent",
         "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/QuantSaaS.Agent.csproj",
-        "packagesPath": "/home/runner/.nuget/packages/",
+        "packagesPath": "/tmp/codeql-scratch-8b73c255da23392e/dbs/csharp/working/packages",
         "outputPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Agent/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
@@ -61,6 +61,20 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.25, 8.0.25]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[8.0.25, 8.0.25]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.25, 8.0.25]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
@@ -76,7 +90,7 @@
         "projectUniqueName": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj",
         "projectName": "QuantSaaS.Core",
         "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/QuantSaaS.Core.csproj",
-        "packagesPath": "/home/runner/.nuget/packages/",
+        "packagesPath": "/tmp/codeql-scratch-8b73c255da23392e/dbs/csharp/working/packages",
         "outputPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Core/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
@@ -126,6 +140,16 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.25, 8.0.25]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.25, 8.0.25]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
@@ -141,7 +165,7 @@
         "projectUniqueName": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Infrastructure/QuantSaaS.Infrastructure.csproj",
         "projectName": "QuantSaaS.Infrastructure",
         "projectPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Infrastructure/QuantSaaS.Infrastructure.csproj",
-        "packagesPath": "/home/runner/.nuget/packages/",
+        "packagesPath": "/tmp/codeql-scratch-8b73c255da23392e/dbs/csharp/working/packages",
         "outputPath": "/home/runner/work/QuantSaaS/QuantSaaS/src/QuantSaaS.Infrastructure/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
@@ -199,6 +223,16 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.25, 8.0.25]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.25, 8.0.25]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
