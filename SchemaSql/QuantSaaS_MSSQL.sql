@@ -158,10 +158,10 @@ BEGIN
         asset_class     INT           NOT NULL,
         timeframe       NVARCHAR(10)  NOT NULL,
         open_time_ms    BIGINT        NOT NULL,
-        open            DECIMAL(18,8) NOT NULL,
+        [open]            DECIMAL(18,8) NOT NULL,
         high            DECIMAL(18,8) NOT NULL,
         low             DECIMAL(18,8) NOT NULL,
-        close           DECIMAL(18,8) NOT NULL,
+        [close]           DECIMAL(18,8) NOT NULL,
         volume          DECIMAL(18,8) NOT NULL,
         CONSTRAINT uq_bar_records UNIQUE (symbol, timeframe, open_time_ms)
     );
