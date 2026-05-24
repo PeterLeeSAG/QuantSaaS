@@ -418,13 +418,9 @@ FodyWeavers.xsd
 obj/
 bin/
 
-
-# Build output
-bin/
-obj/
-
 # LocalAgent API credentials - NEVER commit this file
 config.agent.json
 config.agent.yaml
 *.agent.yaml
 *.agent.json
+/src/AlgoTrader.WebApp/models
