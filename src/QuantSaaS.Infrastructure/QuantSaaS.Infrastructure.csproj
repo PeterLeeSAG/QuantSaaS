@@ -9,10 +9,13 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Dapper" Version="2.1.72" />
     <PackageReference Include="Npgsql" Version="8.0.6" />
+    <!-- MSSQL Dapper connectivity -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <!-- EF Core (for auth / user session entities) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11" />
     <!-- Redis for cache -->
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
   </ItemGroup>

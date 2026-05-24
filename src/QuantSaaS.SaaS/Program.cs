@@ -31,7 +31,22 @@ if (!string.IsNullOrEmpty(pgConnStr))
     builder.Services.AddScoped<IUserService, UserService>();
 }
 
-// EF Core (for auth entities + WebSocket state — uses SQLite in dev, Postgres in prod)
+// Dapper/MSSQL services — activated when a "MsSql" connection string is present
+// and Postgres is not configured (SQL Server Express 2022+).
+var msSqlConnStr = builder.Configuration.GetConnectionString("MsSql");
+if (!string.IsNullOrEmpty(msSqlConnStr) && string.IsNullOrEmpty(pgConnStr))
+{
+    var msFactory = new MsSqlConnectionFactory(msSqlConnStr);
+    builder.Services.AddSingleton(msFactory);
+    builder.Services.AddSingleton<MsSqlDbInitializer>();
+    builder.Services.AddScoped<IDashboardService, MsSqlDashboardService>();
+    builder.Services.AddScoped<IInstanceService, MsSqlInstanceService>();
+    builder.Services.AddScoped<ITradeService, MsSqlTradeService>();
+    builder.Services.AddScoped<IEvolutionService, MsSqlEvolutionService>();
+    builder.Services.AddScoped<IUserService, MsSqlUserService>();
+}
+
+// EF Core (for auth entities + WebSocket state — uses SQLite in dev, Postgres or SQL Server in prod)
 var efConnStr = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Data Source=quantsaas_dev.db";
 
@@ -39,6 +54,11 @@ if (efConnStr.StartsWith("Data Source"))
 {
     builder.Services.AddDbContext<QuantDbContext>(opts =>
         opts.UseSqlite(efConnStr));
+}
+else if (efConnStr.Contains("Server=") || efConnStr.Contains("server=") || efConnStr.Contains("Data Source=") && efConnStr.Contains("Initial Catalog="))
+{
+    builder.Services.AddDbContext<QuantDbContext>(opts =>
+        opts.UseSqlServer(efConnStr));
 }
 else
 {
@@ -107,6 +127,20 @@ if (!string.IsNullOrEmpty(pgConnStr))
     catch (Exception ex)
     {
         app.Logger.LogWarning(ex, "Postgres DB initialisation skipped: {Message}", ex.Message);
+    }
+}
+
+if (!string.IsNullOrEmpty(msSqlConnStr) && string.IsNullOrEmpty(pgConnStr))
+{
+    using var scope = app.Services.CreateScope();
+    var init = scope.ServiceProvider.GetRequiredService<MsSqlDbInitializer>();
+    try
+    {
+        await init.InitialiseAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "MSSQL DB initialisation skipped: {Message}", ex.Message);
     }
 }
 
