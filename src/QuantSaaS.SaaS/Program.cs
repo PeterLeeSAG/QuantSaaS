@@ -110,17 +110,47 @@ if (!string.IsNullOrEmpty(pgConnStr))
     }
 }
 
-// ── EF Core migrations ────────────────────────────────────────────────────────
+// ── EF Core schema (EnsureCreated = code-first AutoMigrate; no migration files needed) ───
 using (var scope = app.Services.CreateScope())
 {
     try
     {
-        var db = scope.ServiceProvider.GetRequiredService<QuantDbContext>();
-        await db.Database.MigrateAsync();
+        var efDb = scope.ServiceProvider.GetRequiredService<QuantDbContext>();
+        await efDb.Database.EnsureCreatedAsync();
+
+        // Seed admin user
+        if (!efDb.Users.Any(u => u.Email == "admin@quantsaas.local"))
+        {
+            efDb.Users.Add(new UserEntity
+            {
+                Id        = new Guid("00000000-0000-0000-0000-000000000002"),
+                Email     = "admin@quantsaas.local",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin1234"),
+                Role      = "admin",
+                Plan      = "pro",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        // Seed demo user
+        if (!efDb.Users.Any(u => u.Email == "demo@quantsaas.local"))
+        {
+            efDb.Users.Add(new UserEntity
+            {
+                Id        = new Guid("00000000-0000-0000-0000-000000000001"),
+                Email     = "demo@quantsaas.local",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("demo1234"),
+                Role      = "user",
+                Plan      = "pro",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await efDb.SaveChangesAsync();
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "EF Core migration skipped: {Message}", ex.Message);
+        app.Logger.LogWarning(ex, "EF Core DB init skipped: {Message}", ex.Message);
     }
 }
 

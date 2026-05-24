@@ -209,9 +209,6 @@ public sealed class DbInitializer
         if (exists > 0) return;
 
         // ── Seed user ─────────────────────────────────────────────────────────
-        // Password is "demo1234" – BCrypt hash stored for reference; real auth
-        // should call BCrypt.Verify at login time. For now the hash is stored
-        // as a plain marker so the DB schema is exercised without a BCrypt dep.
         await conn.ExecuteAsync("""
             INSERT INTO users (id, email, password_hash, subscription_plan, created_at)
             VALUES (@Id, @Email, @PasswordHash, @Plan, @CreatedAt)
@@ -220,7 +217,7 @@ public sealed class DbInitializer
             {
                 Id = SeedUserId,
                 Email = "demo@quantsaas.local",
-                PasswordHash = "$demo$demo1234",   // placeholder — replace with real BCrypt hash at login
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("demo1234"),
                 Plan = "pro",
                 CreatedAt = DateTime.UtcNow
             });

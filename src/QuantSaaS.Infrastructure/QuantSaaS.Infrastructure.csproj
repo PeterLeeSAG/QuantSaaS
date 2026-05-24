@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <!-- Dapper-based DB layer (primary trading DB) -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Dapper" Version="2.1.72" />
     <PackageReference Include="Npgsql" Version="8.0.6" />
     <!-- EF Core (for auth / user session entities) -->
