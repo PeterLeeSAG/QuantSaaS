@@ -126,7 +126,6 @@
     private async Task RefreshStatus()
     {
         _status = await Api.GetSystemStatusAsync();
-        StateHasChanged();
     }
 
     private void Logout()
