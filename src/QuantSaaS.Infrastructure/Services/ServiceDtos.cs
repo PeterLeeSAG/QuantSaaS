@@ -103,6 +103,12 @@ public record LabDto(
 
 // ── User / Settings ───────────────────────────────────────────────────────────
 
+public record AuthUserDto(
+    Guid   Id,
+    string Email,
+    string PasswordHash,
+    string Role);
+
 public record UserSettingsDto(
     string Email,
     string SubscriptionPlan);

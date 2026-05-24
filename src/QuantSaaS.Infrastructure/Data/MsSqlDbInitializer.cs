@@ -43,10 +43,22 @@ public sealed class MsSqlDbInitializer
                 id                  UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
                 email               NVARCHAR(256)    NOT NULL,
                 password_hash       NVARCHAR(MAX)    NOT NULL,
+                role                NVARCHAR(20)     NOT NULL CONSTRAINT df_users_role DEFAULT 'user',
                 subscription_plan   NVARCHAR(50)     NOT NULL CONSTRAINT df_users_plan DEFAULT 'free',
                 created_at          DATETIME2        NOT NULL,
                 CONSTRAINT uq_users_email UNIQUE (email)
             )
+        END
+        """,
+
+        // Idempotent migration: add role column for existing deployments that predate this column.
+        """
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.columns
+            WHERE object_id = OBJECT_ID(N'dbo.users') AND name = N'role'
+        )
+        BEGIN
+            ALTER TABLE dbo.users ADD role NVARCHAR(20) NOT NULL CONSTRAINT df_users_role DEFAULT 'user'
         END
         """,
 
@@ -288,14 +300,15 @@ public sealed class MsSqlDbInitializer
 
         // ── Seed user ─────────────────────────────────────────────────────────
         await conn.ExecuteAsync("""
-            INSERT INTO dbo.users (id, email, password_hash, subscription_plan, created_at)
-            VALUES (@Id, @Email, @PasswordHash, @Plan, @CreatedAt)
+            INSERT INTO dbo.users (id, email, password_hash, role, subscription_plan, created_at)
+            VALUES (@Id, @Email, @PasswordHash, @Role, @Plan, @CreatedAt)
             """,
             new
             {
                 Id = SeedUserId,
                 Email = "demo@quantsaas.local",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("demo1234"),
+                Role = "user",
                 Plan = "pro",
                 CreatedAt = DateTime.UtcNow
             });

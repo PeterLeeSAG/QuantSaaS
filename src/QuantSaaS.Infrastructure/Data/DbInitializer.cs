@@ -34,6 +34,7 @@ public sealed class DbInitializer
             id                  UUID        PRIMARY KEY,
             email               TEXT        NOT NULL UNIQUE,
             password_hash       TEXT        NOT NULL,
+            role                TEXT        NOT NULL DEFAULT 'user',
             subscription_plan   TEXT        NOT NULL DEFAULT 'free',
             created_at          TIMESTAMPTZ NOT NULL
         );
@@ -210,14 +211,15 @@ public sealed class DbInitializer
 
         // ── Seed user ─────────────────────────────────────────────────────────
         await conn.ExecuteAsync("""
-            INSERT INTO users (id, email, password_hash, subscription_plan, created_at)
-            VALUES (@Id, @Email, @PasswordHash, @Plan, @CreatedAt)
+            INSERT INTO users (id, email, password_hash, role, subscription_plan, created_at)
+            VALUES (@Id, @Email, @PasswordHash, @Role, @Plan, @CreatedAt)
             """,
             new
             {
                 Id = SeedUserId,
                 Email = "demo@quantsaas.local",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("demo1234"),
+                Role = "user",
                 Plan = "pro",
                 CreatedAt = DateTime.UtcNow
             });
