@@ -7,9 +7,9 @@ namespace QuantSaaS.Infrastructure.Services;
 public sealed class MsSqlTradeService : ITradeService
 {
     private const int PageSize = 25;
-    private readonly MsSqlConnectionFactory _db;
+    private readonly DbConnectionFactory _db;
 
-    public MsSqlTradeService(MsSqlConnectionFactory db) => _db = db;
+    public MsSqlTradeService(DbConnectionFactory db) => _db = db;
 
     public async Task<TradePageDto> GetPagedAsync(
         Guid userId, string? symbol, string? action, int page, CancellationToken ct = default)

@@ -36,8 +36,8 @@ if (!string.IsNullOrEmpty(pgConnStr))
 var msSqlConnStr = builder.Configuration.GetConnectionString("MsSql");
 if (!string.IsNullOrEmpty(msSqlConnStr) && string.IsNullOrEmpty(pgConnStr))
 {
-    var msFactory = new MsSqlConnectionFactory(msSqlConnStr);
-    builder.Services.AddSingleton(msFactory);
+    var dbFactory = new DbConnectionFactory(msSqlConnStr);
+    builder.Services.AddSingleton(dbFactory);
     builder.Services.AddSingleton<MsSqlDbInitializer>();
     builder.Services.AddScoped<IDashboardService, MsSqlDashboardService>();
     builder.Services.AddScoped<IInstanceService, MsSqlInstanceService>();

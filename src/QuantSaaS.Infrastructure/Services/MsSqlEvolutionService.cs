@@ -6,9 +6,9 @@ namespace QuantSaaS.Infrastructure.Services;
 
 public sealed class MsSqlEvolutionService : IEvolutionService
 {
-    private readonly MsSqlConnectionFactory _db;
+    private readonly DbConnectionFactory _db;
 
-    public MsSqlEvolutionService(MsSqlConnectionFactory db) => _db = db;
+    public MsSqlEvolutionService(DbConnectionFactory db) => _db = db;
 
     public async Task<LabDto> GetLabAsync(Guid userId, CancellationToken ct = default)
     {

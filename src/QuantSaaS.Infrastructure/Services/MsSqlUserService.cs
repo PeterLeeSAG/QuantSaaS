@@ -5,9 +5,9 @@ namespace QuantSaaS.Infrastructure.Services;
 
 public sealed class MsSqlUserService : IUserService
 {
-    private readonly MsSqlConnectionFactory _db;
+    private readonly DbConnectionFactory _db;
 
-    public MsSqlUserService(MsSqlConnectionFactory db) => _db = db;
+    public MsSqlUserService(DbConnectionFactory db) => _db = db;
 
     public async Task<UserSettingsDto?> GetSettingsAsync(Guid userId, CancellationToken ct = default)
     {

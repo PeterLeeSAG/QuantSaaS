@@ -6,9 +6,9 @@ namespace QuantSaaS.Infrastructure.Services;
 
 public sealed class MsSqlDashboardService : IDashboardService
 {
-    private readonly MsSqlConnectionFactory _db;
+    private readonly DbConnectionFactory _db;
 
-    public MsSqlDashboardService(MsSqlConnectionFactory db) => _db = db;
+    public MsSqlDashboardService(DbConnectionFactory db) => _db = db;
 
     public async Task<DashboardSummaryDto> GetSummaryAsync(Guid userId, CancellationToken ct = default)
     {

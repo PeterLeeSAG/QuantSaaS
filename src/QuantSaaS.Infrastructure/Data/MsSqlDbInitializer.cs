@@ -13,9 +13,9 @@ public sealed class MsSqlDbInitializer
     /// <summary>Well-known seed user ID for demo/dev environments.</summary>
     public static readonly Guid SeedUserId = new("00000000-0000-0000-0000-000000000001");
 
-    private readonly MsSqlConnectionFactory _db;
+    private readonly DbConnectionFactory _db;
 
-    public MsSqlDbInitializer(MsSqlConnectionFactory db)
+    public MsSqlDbInitializer(DbConnectionFactory db)
     {
         _db = db;
     }

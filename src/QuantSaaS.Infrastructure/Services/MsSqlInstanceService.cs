@@ -6,9 +6,9 @@ namespace QuantSaaS.Infrastructure.Services;
 
 public sealed class MsSqlInstanceService : IInstanceService
 {
-    private readonly MsSqlConnectionFactory _db;
+    private readonly DbConnectionFactory _db;
 
-    public MsSqlInstanceService(MsSqlConnectionFactory db) => _db = db;
+    public MsSqlInstanceService(DbConnectionFactory db) => _db = db;
 
     public async Task<IReadOnlyList<InstanceRowDto>> GetListAsync(
         Guid userId, string? assetClassFilter, CancellationToken ct = default)
