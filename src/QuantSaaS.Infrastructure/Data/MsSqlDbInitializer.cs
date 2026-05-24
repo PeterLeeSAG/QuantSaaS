@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.Extensions.Logging;
 using QuantSaaS.Core.Models;
 
 namespace QuantSaaS.Infrastructure.Data;
@@ -25,7 +26,16 @@ public sealed class MsSqlDbInitializer
         using var conn = await _db.OpenAsync(ct);
 
         foreach (var ddl in DdlStatements)
-            await conn.ExecuteAsync(ddl);
+        {
+            try
+            {
+                await conn.ExecuteAsync(ddl);
+            }
+            catch (Exception ex) { 
+                Console.WriteLine("Error executing DDL statement: {0}", ex.Message);
+            }
+        }    
+            
 
         await SeedAsync(conn);
     }
@@ -190,10 +200,10 @@ public sealed class MsSqlDbInitializer
                 asset_class     INT              NOT NULL,
                 timeframe       NVARCHAR(10)     NOT NULL,
                 open_time_ms    BIGINT           NOT NULL,
-                open            DECIMAL(18,8)    NOT NULL,
+                [open]            DECIMAL(18,8)    NOT NULL,
                 high            DECIMAL(18,8)    NOT NULL,
                 low             DECIMAL(18,8)    NOT NULL,
-                close           DECIMAL(18,8)    NOT NULL,
+                [close]           DECIMAL(18,8)    NOT NULL,
                 volume          DECIMAL(18,8)    NOT NULL,
                 CONSTRAINT uq_bar_records UNIQUE (symbol, timeframe, open_time_ms)
             )
