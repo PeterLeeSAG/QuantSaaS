@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuantSaaS.Infrastructure.Data;
@@ -8,6 +9,7 @@ namespace QuantSaaS.SaaS.Controllers;
 
 [ApiController]
 [Route("api/v1/dashboard")]
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly QuantDbContext _db;

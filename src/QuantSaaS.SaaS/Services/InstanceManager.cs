@@ -37,7 +37,7 @@ public class InstanceManager
 
     public IEnumerable<Guid> GetRunningInstanceIds() => _runningInstances.Keys;
 
-    public async Task StartAsync(Guid instanceId, CancellationToken ct = default)
+    public virtual async Task StartAsync(Guid instanceId, CancellationToken ct = default)
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<QuantDbContext>();
@@ -51,7 +51,7 @@ public class InstanceManager
         _logger.LogInformation("Instance {Id} started", instanceId);
     }
 
-    public async Task StopAsync(Guid instanceId, CancellationToken ct = default)
+    public virtual async Task StopAsync(Guid instanceId, CancellationToken ct = default)
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<QuantDbContext>();

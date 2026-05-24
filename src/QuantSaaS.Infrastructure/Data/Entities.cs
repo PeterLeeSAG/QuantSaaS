@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuantSaaS.Infrastructure.Data;
 
@@ -20,7 +19,7 @@ public class StrategyTemplateEntity
     [Required, MaxLength(200)] public string Name { get; set; } = null!;
     [MaxLength(20)] public string Version { get; set; } = "1.0.0";
     public bool IsSpot { get; set; } = true;
-    [Column(TypeName = "jsonb")] public string ManifestJson { get; set; } = "{}";
+    public string ManifestJson { get; set; } = "{}";
 }
 
 public class StrategyInstanceEntity
@@ -50,7 +49,7 @@ public class PortfolioStateEntity
 public class RuntimeStateEntity
 {
     [Key] public Guid InstanceId { get; set; }
-    [Column(TypeName = "jsonb")] public string StateJson { get; set; } = "{}";
+    public string StateJson { get; set; } = "{}";
     public long LastUpdatedBarTime { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -87,7 +86,7 @@ public class SpotExecutionEntity
     [MaxLength(100)] public string ClientOrderId { get; set; } = null!;
     [MaxLength(20)] public string Status { get; set; } = "pending"; // pending|filled|failed
     [MaxLength(20)] public string LotType { get; set; } = "FLOATING";
-    [Column(TypeName = "jsonb")] public string CommandJson { get; set; } = "{}";
+    public string CommandJson { get; set; } = "{}";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? FilledAt { get; set; }
 }
@@ -97,7 +96,7 @@ public class AuditLogEntity
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
     public Guid? InstanceId { get; set; }
     [MaxLength(50)] public string EventType { get; set; } = null!;
-    [Column(TypeName = "jsonb")] public string PayloadJson { get; set; } = "{}";
+    public string PayloadJson { get; set; } = "{}";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -106,10 +105,10 @@ public class GeneRecordEntity
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
     [MaxLength(100)] public string StrategyId { get; set; } = null!;
     [MaxLength(20)] public string Role { get; set; } = "challenger"; // challenger|champion|retired
-    [Column(TypeName = "jsonb")] public string ParamPackJson { get; set; } = "{}";
+    public string ParamPackJson { get; set; } = "{}";
     public double ScoreTotal { get; set; }
     public decimal MaxDrawdown { get; set; }
-    [Column(TypeName = "jsonb")] public string WindowScoresJson { get; set; } = "[]";
+    public string WindowScoresJson { get; set; } = "[]";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PromotedAt { get; set; }
 }
@@ -121,7 +120,7 @@ public class EvolutionTaskEntity
     public int PopSize { get; set; } = 300;
     public int MaxGenerations { get; set; } = 25;
     public int Progress { get; set; }
-    [Column(TypeName = "jsonb")] public string ConfigJson { get; set; } = "{}";
+    public string ConfigJson { get; set; } = "{}";
     public string? ErrorMessage { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }

@@ -2,6 +2,9 @@
 @rendermode InteractiveServer
 @inject AppState AppState
 @inject NavigationManager Nav
+@inject IConfiguration Configuration
+@inject QuantSaaS.Infrastructure.Data.QuantDbContext EfDb
+@inject IServiceProvider Services
 
 <PageTitle>Settings — QuantSaaS</PageTitle>
 
@@ -24,7 +27,67 @@
         <div style="font-size:12px;color:var(--text-muted);">Email cannot be changed. Contact support if needed.</div>
     </div>
 
-    <div class="qs-card">
+    <!-- Database Status -->
+    <div class="qs-card" style="margin-bottom:16px;">
+        <div class="qs-card-header">
+            <span class="qs-card-title">Database</span>
+            <button class="qs-btn qs-btn-ghost qs-btn-xs" @onclick="RefreshDbStatus" disabled="@_checkingDb">
+                @(_checkingDb ? "Checking…" : "↺ Refresh")
+            </button>
+        </div>
+        @if (_checkingDb)
+        {
+            <div class="qs-skeleton" style="height:80px;border-radius:8px;"></div>
+        }
+        else
+        {
+            <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--text-secondary);">
+                <!-- EF Core auth DB row -->
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Auth DB <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(EF Core)</span></div>
+                        <div class="mono" style="font-size:11px;margin-top:2px;color:var(--text-muted);">@_efTarget</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="mono" style="font-size:12px;">@_efBackend</span>
+                        @if (_efCanConnect)
+                        {
+                            <span style="color:var(--success);font-size:16px;" title="Connected">✓</span>
+                        }
+                        else
+                        {
+                            <span style="color:var(--danger);font-size:16px;" title="Cannot connect">✗</span>
+                        }
+                    </div>
+                </div>
+                <div style="height:1px;background:var(--border);"></div>
+                <!-- Dapper data DB row -->
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Data DB <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(Dapper)</span></div>
+                        <div class="mono" style="font-size:11px;margin-top:2px;color:var(--text-muted);">@_dapperTarget</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="mono" style="font-size:12px;">@_dapperBackend</span>
+                        @if (_dapperBackend == "None")
+                        {
+                            <span style="color:var(--text-muted);font-size:14px;" title="Not configured">—</span>
+                        }
+                        else if (_dapperCanConnect)
+                        {
+                            <span style="color:var(--success);font-size:16px;" title="Connected">✓</span>
+                        }
+                        else
+                        {
+                            <span style="color:var(--danger);font-size:16px;" title="Cannot connect">✗</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="qs-card" style="margin-bottom:16px;">
         <div class="qs-card-header">
             <span class="qs-card-title">About</span>
         </div>
@@ -44,3 +107,100 @@
         </div>
     </div>
 </div>
+
+@code {
+    private bool _checkingDb = true;
+    private bool _efCanConnect;
+    private bool _dapperCanConnect;
+    private string _efBackend = "";
+    private string _efTarget = "";
+    private string _dapperBackend = "None";
+    private string _dapperTarget = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await RefreshDbStatus();
+    }
+
+    private async Task RefreshDbStatus()
+    {
+        _checkingDb = true;
+        StateHasChanged();
+
+        var msSqlConn = Configuration.GetConnectionString("MsSql");
+        var pgConn    = Configuration.GetConnectionString("Postgres");
+        var efConn    = Configuration.GetConnectionString("DefaultConnection")
+                        ?? "Data Source=quantsaas_dev.db";
+
+        // Determine EF Core backend
+        if (efConn.StartsWith("Data Source", StringComparison.OrdinalIgnoreCase)
+            && !efConn.Contains("Initial Catalog", StringComparison.OrdinalIgnoreCase))
+        {
+            _efBackend = "SQLite";
+            _efTarget  = efConn.Replace("Data Source=", "", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        else if (efConn.Contains("Server=", StringComparison.OrdinalIgnoreCase))
+        {
+            _efBackend = "SQL Server";
+            _efTarget  = ExtractKv(efConn, "Server") ?? ExtractKv(efConn, "Data Source") ?? "unknown";
+        }
+        else
+        {
+            _efBackend = "PostgreSQL";
+            _efTarget  = ExtractKv(efConn, "Host") ?? "unknown";
+        }
+
+        // Determine Dapper backend
+        if (!string.IsNullOrEmpty(pgConn))
+        {
+            _dapperBackend = "PostgreSQL";
+            _dapperTarget  = ExtractKv(pgConn, "Host") ?? "unknown";
+        }
+        else if (!string.IsNullOrEmpty(msSqlConn))
+        {
+            _dapperBackend = "SQL Server";
+            _dapperTarget  = ExtractKv(msSqlConn, "Server") ?? ExtractKv(msSqlConn, "Data Source") ?? "unknown";
+        }
+        else
+        {
+            _dapperBackend = "None";
+            _dapperTarget  = "";
+        }
+
+        // Live EF Core connectivity check
+        try   { _efCanConnect = await EfDb.Database.CanConnectAsync(); }
+        catch { _efCanConnect = false; }
+
+        // Live Dapper connectivity check
+        if (_dapperBackend != "None")
+        {
+            var factory = Services.GetService<QuantSaaS.Infrastructure.Data.DbConnectionFactory>();
+            if (factory is not null)
+            {
+                try
+                {
+                    using var conn = await factory.OpenAsync();
+                    _dapperCanConnect = true;
+                }
+                catch { _dapperCanConnect = false; }
+            }
+        }
+
+        _checkingDb = false;
+    }
+
+    private static string? ExtractKv(string connStr, string key)
+    {
+        foreach (var part in connStr.Split(';'))
+        {
+            var idx = part.IndexOf('=');
+            if (idx < 1) continue;
+            var k = part[..idx].Trim();
+            var v = part[(idx + 1)..].Trim();
+            if (k.Equals(key, StringComparison.OrdinalIgnoreCase))
+                return v;
+        }
+        return null;
+    }
+}

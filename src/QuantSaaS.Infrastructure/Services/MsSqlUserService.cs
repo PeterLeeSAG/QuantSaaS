@@ -3,18 +3,18 @@ using QuantSaaS.Infrastructure.Data;
 
 namespace QuantSaaS.Infrastructure.Services;
 
-public sealed class UserService : IUserService
+public sealed class MsSqlUserService : IUserService
 {
     private readonly DbConnectionFactory _db;
 
-    public UserService(DbConnectionFactory db) => _db = db;
+    public MsSqlUserService(DbConnectionFactory db) => _db = db;
 
     public async Task<AuthUserDto?> FindByEmailAsync(string email, CancellationToken ct = default)
     {
         using var conn = await _db.OpenAsync(ct);
 
         var row = await conn.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT id, email, password_hash, role FROM users WHERE email = @Email",
+            "SELECT id, email, password_hash, role FROM dbo.users WHERE email = @Email",
             new { Email = email });
 
         if (row is null) return null;
@@ -33,7 +33,7 @@ public sealed class UserService : IUserService
 
         await conn.ExecuteAsync(
             """
-            INSERT INTO users (id, email, password_hash, role, subscription_plan, created_at)
+            INSERT INTO dbo.users (id, email, password_hash, role, subscription_plan, created_at)
             VALUES (@Id, @Email, @PasswordHash, @Role, 'free', @CreatedAt)
             """,
             new { Id = id, Email = email, PasswordHash = passwordHash, Role = role, CreatedAt = DateTime.UtcNow });
@@ -46,7 +46,7 @@ public sealed class UserService : IUserService
         using var conn = await _db.OpenAsync(ct);
 
         var row = await conn.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT email, subscription_plan FROM users WHERE id = @Id",
+            "SELECT email, subscription_plan FROM dbo.users WHERE id = @Id",
             new { Id = userId });
 
         if (row is null) return null;

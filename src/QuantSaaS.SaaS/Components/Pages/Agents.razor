@@ -139,7 +139,11 @@
         if (firstRender)
         {
             _timer = new System.Timers.Timer(30_000);
-            _timer.Elapsed += async (_, _) => { await RefreshStatus(); await InvokeAsync(StateHasChanged); };
+            _timer.Elapsed += (_, _) => InvokeAsync(async () =>
+            {
+                await RefreshStatus();
+                StateHasChanged();
+            });
             _timer.Start();
         }
     }
@@ -147,7 +151,6 @@
     private async Task RefreshStatus()
     {
         _status = await Api.GetSystemStatusAsync();
-        StateHasChanged();
     }
 
     public void Dispose() => _timer?.Dispose();
