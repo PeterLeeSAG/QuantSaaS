@@ -19,6 +19,8 @@ public sealed class BtcSpotStrategy : IPureStrategy
 
     public string StrategyId => "btc-spot-v1";
     public string DisplayName => "BTC Spot Strategy v1";
+    public string Version => "1.0.0";
+    public bool IsSpotOnly => true;
 
     public BtcSpotStrategy(BtcChromosome chromosome)
     {

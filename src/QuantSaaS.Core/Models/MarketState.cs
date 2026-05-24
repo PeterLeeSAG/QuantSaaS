@@ -22,4 +22,8 @@ public record MarketState
     public decimal TimeDilationMultiplier { get; init; } = 1.0m;
 
     public static MarketState Default => new();
+    public static MarketState Normal => new() { State = "Normal" };
+    public static MarketState Quiet  => new() { State = "Quiet",  IsQuiet = true };
+    public static MarketState Bull   => new() { State = "Bull" };
+    public static MarketState Bear   => new() { State = "Bear" };
 }

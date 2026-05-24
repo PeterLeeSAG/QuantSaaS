@@ -29,6 +29,8 @@ public sealed class StockStrategy : IPureStrategy
 
     public string StrategyId => "us-stock-v1";
     public string DisplayName => "US Equity Strategy v1";
+    public string Version => "1.0.0";
+    public bool IsSpotOnly => false;
 
     public StockStrategy(StockChromosome chromosome)
     {

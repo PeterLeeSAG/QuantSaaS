@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using QuantSaaS.Core.Interfaces;
@@ -35,7 +36,7 @@ public sealed class StockEvolvable : IEvolvableStrategy
             CoefX1 = RandDecimal(rng, Chromosome.Bounds.CoefMin, Chromosome.Bounds.CoefMax),
             CoefX2 = RandDecimal(rng, Chromosome.Bounds.CoefMin, Chromosome.Bounds.CoefMax),
             CoefX3 = RandDecimal(rng, Chromosome.Bounds.CoefMin, Chromosome.Bounds.CoefMax),
-            DeltaWeightThreshold = RandDecimal(rng, Chromosome.Bounds.DeltaWeightMin, Chromosome.Bounds.DeltaWeightMax),
+            DeltaWeightThreshold = RandDecimal(rng, Chromosome.Bounds.ThresholdMin, Chromosome.Bounds.ThresholdMax),
             VolatilityRatioThreshold = RandDecimal(rng, Chromosome.Bounds.VolRatioThresholdMin, Chromosome.Bounds.VolRatioThresholdMax),
             MinOrderThreshold = RandDecimal(rng, Chromosome.Bounds.MinOrderMin, Chromosome.Bounds.MinOrderMax),
             EmaShortBars = RandDecimal(rng, StockChromosome.Bounds.EmaShortMin, StockChromosome.Bounds.EmaShortMax),
@@ -109,14 +110,17 @@ public sealed class StockEvolvable : IEvolvableStrategy
         var costModel = new FixedCommissionModel(ratePerShare: 0m, slippageFraction: 0.0001m);
         var engine = new BacktestEngine(strategy, costModel, _calendar);
 
-        WindowScore? score6m = null, score2y = null, score5y = null, scoreFull = null;
-        decimal total = 0m;
+        var scores = new List<WindowScore>();
+        double total = 0.0;
         decimal worstMaxDD = 0m;
+        bool isFatal = false;
 
         // Cascading short-circuit: evaluate 6m → 2y → 5y → full
         foreach (var window in plan.Windows)
         {
-            var result = engine.Run(window.AllBars, window.EvalStartIdx, instrument, plan.Spawn);
+            var bars = ClosesToBars(window.Closes, window.Timestamps);
+            int evalStartIdx = FindEvalStartIdx(window.Timestamps, window.EvalStartMs);
+            var result = engine.Run(bars, evalStartIdx, instrument, plan.Spawn);
             var dca = plan.DcaBaselines[Array.IndexOf(plan.Windows, window)];
 
             decimal alpha = result.ROI - dca.ROI;
@@ -127,7 +131,8 @@ public sealed class StockEvolvable : IEvolvableStrategy
             if (fatal)
             {
                 sliceScore = -99999m;
-                total = -99999m;
+                total = -99999;
+                isFatal = true;
             }
 
             var ws = new WindowScore
@@ -137,32 +142,43 @@ public sealed class StockEvolvable : IEvolvableStrategy
                 Alpha = alpha,
                 SliceScore = sliceScore,
                 MaxDrawdown = result.MaxDrawdown,
+                StrategyRoi = result.ROI,
+                DcaRoi = dca.ROI,
                 IsFatal = fatal,
             };
-
-            if (window.Label == "6m") score6m = ws;
-            else if (window.Label == "2y") score2y = ws;
-            else if (window.Label == "5y") score5y = ws;
-            else scoreFull = ws;
+            scores.Add(ws);
 
             if (result.MaxDrawdown > worstMaxDD) worstMaxDD = result.MaxDrawdown;
 
-            if (!fatal && total != -99999m)
-                total += window.Weight * sliceScore;
+            if (!fatal && !isFatal)
+                total += (double)(window.Weight * sliceScore);
 
-            if (fatal) break; // cascading short-circuit
+            if (fatal) break;
         }
 
         return new FitnessResult
         {
-            ScoreTotal = total,
+            ScoreTotal = isFatal ? -99999 : total,
             MaxDrawdown = worstMaxDD,
-            IsFatal = total == -99999m,
-            Score6m = score6m ?? new WindowScore { Label = "6m" },
-            Score2y = score2y ?? new WindowScore { Label = "2y" },
-            Score5y = score5y ?? new WindowScore { Label = "5y" },
-            ScoreFull = scoreFull ?? new WindowScore { Label = "full" },
+            IsFatal = isFatal,
+            WindowScores = scores.ToArray(),
         };
+    }
+
+    private static Bar[] ClosesToBars(decimal[] closes, long[] timestamps)
+    {
+        var bars = new Bar[closes.Length];
+        for (int i = 0; i < closes.Length; i++)
+            bars[i] = new Bar { OpenTimeMs = timestamps[i], Close = closes[i],
+                Open = closes[i], High = closes[i], Low = closes[i], Volume = 1m };
+        return bars;
+    }
+
+    private static int FindEvalStartIdx(long[] timestamps, long evalStartMs)
+    {
+        for (int i = 0; i < timestamps.Length; i++)
+            if (timestamps[i] >= evalStartMs) return i;
+        return 0;
     }
 
     public Chromosome DecodeElite(string? paramPackJson)
@@ -193,11 +209,9 @@ public sealed class StockEvolvable : IEvolvableStrategy
 
     private static FitnessResult Fatal() => new FitnessResult
     {
-        ScoreTotal = -99999m, IsFatal = true,
-        Score6m = new WindowScore { Label = "6m", IsFatal = true },
-        Score2y = new WindowScore { Label = "2y", IsFatal = true },
-        Score5y = new WindowScore { Label = "5y", IsFatal = true },
-        ScoreFull = new WindowScore { Label = "full", IsFatal = true },
+        ScoreTotal = -99999,
+        IsFatal = true,
+        WindowScores = new[] { new WindowScore { Label = "fatal", IsFatal = true } }
     };
 
     private static decimal RandDecimal(Random rng, decimal min, decimal max)

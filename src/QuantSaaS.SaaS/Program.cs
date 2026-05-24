@@ -1,34 +1,104 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using QuantSaaS.Core.Config;
 using QuantSaaS.Infrastructure.Data;
 using QuantSaaS.Infrastructure.Services;
+using QuantSaaS.SaaS.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Infrastructure: DB + Services ────────────────────────────────────────────
-var connStr = builder.Configuration.GetConnectionString("Postgres")
-    ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required.");
+// ── Config ────────────────────────────────────────────────────────────────────
+var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfig>() ?? new JwtConfig
+{
+    Secret = builder.Configuration["Jwt:Secret"] ?? "dev-secret-minimum-32-characters-long!",
+    ExpiryHours = 24
+};
 
-var dbFactory = new DbConnectionFactory(connStr);
-builder.Services.AddSingleton(dbFactory);
-builder.Services.AddSingleton<DbInitializer>();
+// ── Database ──────────────────────────────────────────────────────────────────
+// Dapper/Postgres services (primary DB layer — see Infrastructure/Services/)
+var pgConnStr = builder.Configuration.GetConnectionString("Postgres");
+if (!string.IsNullOrEmpty(pgConnStr))
+{
+    var dbFactory = new DbConnectionFactory(pgConnStr);
+    builder.Services.AddSingleton(dbFactory);
+    builder.Services.AddSingleton<DbInitializer>();
+    builder.Services.AddScoped<IDashboardService, DashboardService>();
+    builder.Services.AddScoped<IInstanceService, InstanceService>();
+    builder.Services.AddScoped<ITradeService, TradeService>();
+    builder.Services.AddScoped<IEvolutionService, EvolutionService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+}
 
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IInstanceService, InstanceService>();
-builder.Services.AddScoped<ITradeService, TradeService>();
-builder.Services.AddScoped<IEvolutionService, EvolutionService>();
-builder.Services.AddScoped<IUserService, UserService>();
+// EF Core (for auth entities + WebSocket state — uses SQLite in dev, Postgres in prod)
+var efConnStr = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Data Source=quantsaas_dev.db";
 
-// ── ASP.NET ───────────────────────────────────────────────────────────────────
+if (efConnStr.StartsWith("Data Source"))
+{
+    builder.Services.AddDbContext<QuantDbContext>(opts =>
+        opts.UseSqlite(efConnStr));
+}
+else
+{
+    builder.Services.AddDbContext<QuantDbContext>(opts =>
+        opts.UseNpgsql(efConnStr));
+}
+
+// ── Core services ─────────────────────────────────────────────────────────────
+builder.Services.AddSingleton(jwtConfig);
+builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<WsHub>();
+builder.Services.AddSingleton<InstanceManager>();
+builder.Services.AddHostedService<CronTickService>();
+
+// ── Blazor state (scoped per circuit) ────────────────────────────────────────
+builder.Services.AddScoped<AppState>();
+
+// ── API client for Blazor → REST calls (in-process loopback) ─────────────────
+builder.Services.AddHttpClient("self", (sp, client) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var urls = cfg["ASPNETCORE_URLS"] ?? cfg["urls"] ?? "http://localhost:5292";
+    var httpUrl = urls.Split(';').FirstOrDefault(u => u.StartsWith("http://")) ?? urls.Split(';').First();
+    client.BaseAddress = new Uri(httpUrl.TrimEnd('/') + "/");
+});
+builder.Services.AddScoped<ApiClient>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var appState = sp.GetRequiredService<AppState>();
+    return new ApiClient(factory.CreateClient("self"), appState);
+});
+
+// ── JWT Auth ──────────────────────────────────────────────────────────────────
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opts =>
+    {
+        opts.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtConfig.Secret)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+builder.Services.AddAuthorization();
+
+// ── Blazor + API ──────────────────────────────────────────────────────────────
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
-builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
 // ── DB initialisation (schema + seed) ────────────────────────────────────────
-// Runs synchronously at startup; safe because it uses CREATE TABLE IF NOT EXISTS.
-using (var scope = app.Services.CreateScope())
+if (!string.IsNullOrEmpty(pgConnStr))
 {
+    using var scope = app.Services.CreateScope();
     var init = scope.ServiceProvider.GetRequiredService<DbInitializer>();
     try
     {
@@ -36,9 +106,21 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        // Log and continue — the app should start even if Postgres is unavailable
-        // (e.g. during CI builds without a live DB).
-        app.Logger.LogWarning(ex, "DB initialisation skipped: {Message}", ex.Message);
+        app.Logger.LogWarning(ex, "Postgres DB initialisation skipped: {Message}", ex.Message);
+    }
+}
+
+// ── EF Core migrations ────────────────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<QuantDbContext>();
+        await db.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "EF Core migration skipped: {Message}", ex.Message);
     }
 }
 
@@ -51,9 +133,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseAntiforgery();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
-app.MapRazorPages();
+app.MapRazorComponents<QuantSaaS.SaaS.Components.App>()
+   .AddInteractiveServerRenderMode();
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "healthy", role = "saas" }))
    .WithName("HealthCheck");

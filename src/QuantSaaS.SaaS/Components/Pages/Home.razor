@@ -1,0 +1,339 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppState AppState
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated)
+{
+    Nav.NavigateTo("/login");
+    return;
+}
+
+<div style="display:flex;gap:20px;height:100%;min-height:0;">
+
+    <!-- Left: Instance List (25%) -->
+    <div style="width:280px;min-width:260px;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:600;color:var(--text-secondary);">INSTANCES</span>
+            <a href="/instances/new" class="qs-btn qs-btn-ghost qs-btn-xs">+ New</a>
+        </div>
+
+        @if (_loadingInstances)
+        {
+            <div class="qs-skeleton" style="height:72px;border-radius:10px;"></div>
+            <div class="qs-skeleton" style="height:72px;border-radius:10px;"></div>
+        }
+        else if (_instances.Count == 0)
+        {
+            <div class="qs-card" style="text-align:center;padding:28px 16px;">
+                <div style="font-size:28px;margin-bottom:8px;">🤖</div>
+                <div style="font-size:13px;color:var(--text-secondary);">No instances yet</div>
+                <a href="/instances/new" class="qs-btn qs-btn-primary qs-btn-sm" style="margin-top:12px;">Create First Instance</a>
+            </div>
+        }
+        else
+        {
+            @foreach (var inst in _instances)
+            {
+                <div class="qs-instance-card @(inst.Id == _selectedId ? "selected" : "")"
+                     @onclick="() => SelectInstance(inst.Id)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <div class="qs-instance-name">@inst.Symbol</div>
+                        <span class="qs-badge @BadgeClass(inst.Status)">@StatusLabel(inst.Status)</span>
+                    </div>
+                    <div class="qs-instance-sub">@inst.AggregationPeriod · @inst.FundQuota.ToString("N0") USDT quota</div>
+                    @if (inst.TotalEquity.HasValue)
+                    {
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:6px;" class="mono">
+                            $@inst.TotalEquity.Value.ToString("N2")
+                        </div>
+                    }
+                    <div style="display:flex;gap:6px;margin-top:10px;">
+                        @if (inst.Status == "RUNNING")
+                        {
+                            <button class="qs-btn qs-btn-ghost qs-btn-xs" @onclick:stopPropagation="true"
+                                    @onclick="() => ToggleInstance(inst, false)">⏸ Pause</button>
+                        }
+                        else
+                        {
+                            <button class="qs-btn qs-btn-primary qs-btn-xs" @onclick:stopPropagation="true"
+                                    @onclick="() => ToggleInstance(inst, true)">▶ Start</button>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Right: Main content (75%) -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;overflow-y:auto;min-height:0;">
+
+        @if (_selectedId == Guid.Empty)
+        {
+            <div class="qs-card" style="text-align:center;padding:48px;">
+                <div style="font-size:40px;margin-bottom:12px;">📊</div>
+                <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Select an Instance</div>
+                <div style="font-size:13px;color:var(--text-secondary);">Choose a strategy instance from the left to view its performance.</div>
+            </div>
+        }
+        else
+        {
+            <!-- Portfolio Overview -->
+            <div class="qs-card">
+                <div class="qs-card-header">
+                    <span class="qs-card-title">Portfolio Overview</span>
+                    @if (_dashData != null)
+                    {
+                        <span style="font-size:11px;color:var(--text-muted)">
+                            Last decision: @(DateTimeOffset.FromUnixTimeMilliseconds(_dashData.LastDecisionTime).ToString("MMM d, HH:mm"))
+                        </span>
+                    }
+                </div>
+
+                @if (_loadingDash)
+                {
+                    <div class="qs-grid qs-grid-4" style="gap:12px;">
+                        @for (var i = 0; i < 4; i++) {
+                            <div class="qs-skeleton" style="height:64px;border-radius:8px;"></div>
+                        }
+                    </div>
+                }
+                else if (_dashData != null)
+                {
+                    <div class="qs-grid qs-grid-4" style="gap:12px;">
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Total Assets</div>
+                            <div class="qs-stat-value mono">$@_dashData.TotalEquity.ToString("N0")</div>
+                            <div class="qs-stat-sub">USDT equivalent</div>
+                        </div>
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Long-term Holdings</div>
+                            <div class="qs-stat-value mono">$@_dashData.LongTermHoldings.ToString("N0")</div>
+                            <div class="qs-stat-sub">Core position</div>
+                        </div>
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Active Position</div>
+                            <div class="qs-stat-value mono">$@_dashData.ActivePosition.ToString("N0")</div>
+                            <div class="qs-stat-sub">Deployed capital</div>
+                        </div>
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Available Funds</div>
+                            <div class="qs-stat-value mono">$@_dashData.UsdtBalance.ToString("N0")</div>
+                            <div class="qs-stat-sub">Ready to deploy</div>
+                        </div>
+                    </div>
+
+                    <!-- Asset distribution bar -->
+                    <div style="margin-top:16px;">
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Asset Distribution</div>
+                        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;">
+                            <div style="width:@DistPct(_dashData.LongTermHoldings, _dashData.TotalEquity)%;background:var(--accent);border-radius:3px;" title="Long-term"></div>
+                            <div style="width:@DistPct(_dashData.ActivePosition, _dashData.TotalEquity)%;background:var(--info);border-radius:3px;" title="Active"></div>
+                            <div style="width:@DistPct(_dashData.UsdtBalance, _dashData.TotalEquity)%;background:var(--success);border-radius:3px;" title="Cash"></div>
+                            <div style="width:@DistPct(_dashData.SealedAssets, _dashData.TotalEquity)%;background:var(--text-muted);border-radius:3px;" title="Sealed"></div>
+                        </div>
+                        <div style="display:flex;gap:16px;margin-top:8px;">
+                            <div style="font-size:10.5px;color:var(--accent);">● Long-term</div>
+                            <div style="font-size:10.5px;color:var(--info);">● Active</div>
+                            <div style="font-size:10.5px;color:var(--success);">● Cash</div>
+                            <div style="font-size:10.5px;color:var(--text-muted);">● Sealed</div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Equity Curve -->
+            <div class="qs-card">
+                <div class="qs-card-header">
+                    <span class="qs-card-title">Net Asset Value</span>
+                    <div style="display:flex;gap:4px;">
+                        @foreach (var d in new[] { 7, 30, 90 })
+                        {
+                            <button class="qs-btn qs-btn-xs @(_equityDays == d ? "qs-btn-primary" : "qs-btn-ghost")"
+                                    @onclick="() => ChangeEquityRange(d)">@d D</button>
+                        }
+                    </div>
+                </div>
+
+                @if (_loadingEquity)
+                {
+                    <div class="qs-skeleton" style="height:180px;border-radius:8px;"></div>
+                }
+                else if (_equityPoints.Count == 0)
+                {
+                    <div class="qs-chart-placeholder">
+                        <span>📈</span>
+                        <span>No historical data yet — start the instance to record performance</span>
+                    </div>
+                }
+                else
+                {
+                    <!-- Simple SVG equity curve -->
+                    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px;">
+                        <span class="mono" style="font-size:24px;font-weight:700;">$@_equityPoints.Last().Equity.ToString("N0")</span>
+                        <span class="mono @(GetEquityPnlPct() >= 0 ? "text-success" : "text-danger")" style="font-size:13px;">
+                            @(GetEquityPnlPct() >= 0 ? "+" : "")@GetEquityPnlPct().ToString("F2")%
+                        </span>
+                        <span style="font-size:12px;color:var(--text-muted)">vs @_equityDays-day start</span>
+                    </div>
+                    <svg viewBox="0 0 800 160" style="width:100%;height:160px;" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0.02"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="@BuildEquityAreaPath()" fill="url(#eqGrad)"/>
+                        <path d="@BuildEquitySvgPath()" fill="none" stroke="#2dd4bf" stroke-width="2"/>
+                    </svg>
+                }
+            </div>
+
+            <!-- Strategy Journey -->
+            <div class="qs-card">
+                <div class="qs-card-header">
+                    <span class="qs-card-title">Strategy Journey</span>
+                </div>
+                @if (_dashData != null)
+                {
+                    <div class="qs-grid qs-grid-3" style="gap:12px;">
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Total Trades Executed</div>
+                            <div class="qs-stat-value mono">@_dashData.TotalTrades</div>
+                        </div>
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Market Condition</div>
+                            <div class="qs-stat-value" style="font-size:16px;">@_dashData.MarketState</div>
+                        </div>
+                        <div class="qs-stat-card">
+                            <div class="qs-stat-label">Instance Status</div>
+                            <div style="margin-top:4px;">
+                                @{
+                                    var sel = _instances.FirstOrDefault(i => i.Id == _selectedId);
+                                }
+                                @if (sel != null)
+                                {
+                                    <span class="qs-badge @BadgeClass(sel.Status)" style="font-size:13px;">@StatusLabel(sel.Status)</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<InstanceSummary> _instances = new();
+    private Guid _selectedId;
+    private DashboardData? _dashData;
+    private List<EquityPoint> _equityPoints = new();
+    private bool _loadingInstances = true;
+    private bool _loadingDash;
+    private bool _loadingEquity;
+    private int _equityDays = 30;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await LoadInstances();
+    }
+
+    private async Task LoadInstances()
+    {
+        _loadingInstances = true;
+        _instances = await Api.GetInstancesAsync();
+        _loadingInstances = false;
+
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Nav.Uri).Query);
+        if (query.TryGetValue("instance", out var idStr) && Guid.TryParse(idStr, out var id) && _instances.Any(i => i.Id == id))
+            await SelectInstance(id);
+        else if (_instances.Count > 0)
+            await SelectInstance(_instances[0].Id);
+    }
+
+    private async Task SelectInstance(Guid id)
+    {
+        _selectedId = id;
+        await LoadDashData();
+        await LoadEquityData();
+    }
+
+    private async Task LoadDashData()
+    {
+        _loadingDash = true;
+        _dashData = await Api.GetDashboardDataAsync(_selectedId);
+        _loadingDash = false;
+    }
+
+    private async Task LoadEquityData()
+    {
+        _loadingEquity = true;
+        _equityPoints = await Api.GetEquitySnapshotsAsync(_selectedId, _equityDays);
+        _loadingEquity = false;
+    }
+
+    private async Task ChangeEquityRange(int days)
+    {
+        _equityDays = days;
+        await LoadEquityData();
+    }
+
+    private async Task ToggleInstance(InstanceSummary inst, bool start)
+    {
+        await Api.PatchInstanceAsync(inst.Id, start ? "start" : "stop");
+        await LoadInstances();
+    }
+
+    private static string BadgeClass(string status) => status switch
+    {
+        "RUNNING" => "qs-badge-running",
+        "ERROR" => "qs-badge-error",
+        _ => "qs-badge-stopped"
+    };
+
+    private static string StatusLabel(string status) => status switch
+    {
+        "RUNNING" => "Running",
+        "STOPPED" => "Paused",
+        "ERROR" => "Error",
+        _ => status
+    };
+
+    private static string DistPct(decimal value, decimal total)
+        => ((double)(value / Math.Max(total, 1) * 100)).ToString("F1");
+
+    private string BuildEquitySvgPath()
+    {
+        var pts = _equityPoints;
+        var minEq = (double)pts.Min(p => p.Equity);
+        var maxEq = (double)pts.Max(p => p.Equity);
+        var eqRange = maxEq - minEq;
+        if (eqRange == 0) eqRange = 1;
+        const double W = 800.0, H = 160.0;
+        return string.Join(" ", pts.Select((p, i) =>
+        {
+            var x = i / (double)(pts.Count - 1) * W;
+            var y = H - ((double)p.Equity - minEq) / eqRange * (H - 20) - 10;
+            return $"{(i == 0 ? "M" : "L")}{x:F0},{y:F0}";
+        }));
+    }
+
+    private string BuildEquityAreaPath()
+    {
+        var path = BuildEquitySvgPath();
+        return path + " L800,160 L0,160 Z";
+    }
+
+    private decimal GetEquityPnlPct()
+    {
+        if (_equityPoints.Count < 2) return 0;
+        var first = _equityPoints.First().Equity;
+        var last = _equityPoints.Last().Equity;
+        return first != 0 ? (last - first) / first * 100 : 0;
+    }
+}

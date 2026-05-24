@@ -1,0 +1,46 @@
+@page "/settings"
+@rendermode InteractiveServer
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<PageTitle>Settings — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="max-width:600px;">
+    <div style="margin-bottom:24px;">
+        <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">Account Settings</h2>
+        <p style="color:var(--text-secondary);font-size:13px;margin:0;">Manage your account and preferences</p>
+    </div>
+
+    <div class="qs-card" style="margin-bottom:16px;">
+        <div class="qs-card-header">
+            <span class="qs-card-title">Account</span>
+        </div>
+        <div class="qs-form-group">
+            <label class="qs-label">Email Address</label>
+            <input class="qs-input" value="@AppState.UserEmail" readonly style="opacity:0.7;cursor:not-allowed;" />
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);">Email cannot be changed. Contact support if needed.</div>
+    </div>
+
+    <div class="qs-card">
+        <div class="qs-card-header">
+            <span class="qs-card-title">About</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text-secondary);">
+            <div style="display:flex;justify-content:space-between;">
+                <span>Version</span>
+                <span class="mono">1.0.0-beta</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span>Framework</span>
+                <span class="mono">.NET 8 / Blazor Server</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span>Strategy Engine</span>
+                <span class="mono">QuantSaaS.Quant v1.0</span>
+            </div>
+        </div>
+    </div>
+</div>

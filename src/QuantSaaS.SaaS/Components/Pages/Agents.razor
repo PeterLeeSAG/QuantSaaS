@@ -1,0 +1,154 @@
+@page "/agents"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject AppState AppState
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Agent Status — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="margin-bottom:20px;">
+    <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">Execution Agent</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin:0;">Your local trading agent connects here to execute orders</p>
+</div>
+
+<div class="qs-grid qs-grid-2" style="gap:16px;margin-bottom:16px;">
+
+    <!-- Connection status -->
+    <div class="qs-card">
+        <div class="qs-card-header">
+            <span class="qs-card-title">Connection Status</span>
+        </div>
+        @if (_status != null)
+        {
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 0;">
+                <div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                            background:@(_status.AgentConnected ? "rgba(52,211,153,0.15)" : "rgba(100,116,139,0.15)");">
+                    <div class="qs-dot @(_status.AgentConnected ? "online" : "")" style="width:16px;height:16px;"></div>
+                </div>
+                <div>
+                    <div style="font-size:16px;font-weight:600;">
+                        @(_status.AgentConnected ? "Agent Connected" : "Agent Offline")
+                    </div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                        @(_status.AgentConnected
+                            ? "Your local execution agent is connected and ready to trade"
+                            : "No agent connected — trades cannot be executed until agent reconnects")
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="qs-skeleton" style="height:60px;border-radius:8px;"></div>
+        }
+    </div>
+
+    <!-- Engine status -->
+    <div class="qs-card">
+        <div class="qs-card-header">
+            <span class="qs-card-title">Engine Status</span>
+        </div>
+        @if (_status != null)
+        {
+            <div style="padding:12px 0;">
+                <span class="qs-badge @(_status.EngineStatus == "running" ? "qs-badge-running" : "qs-badge-stopped")" style="font-size:13px;">
+                    @(_status.EngineStatus == "running" ? "Engine Running" : "Engine Paused")
+                </span>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:10px;">
+                    @(_status.EngineStatus == "running"
+                        ? "Strategy engine is active — decisions are being made on schedule"
+                        : "No running instances — start an instance to activate the engine")
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="qs-skeleton" style="height:60px;border-radius:8px;"></div>
+        }
+    </div>
+</div>
+
+<!-- Setup guide -->
+<div class="qs-card">
+    <div class="qs-card-header">
+        <span class="qs-card-title">Setup Guide</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-dim);border:1px solid var(--accent-border);
+                        display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">1</div>
+            <div>
+                <div style="font-weight:600;font-size:14px;margin-bottom:3px;">Download LocalAgent Binary</div>
+                <div style="font-size:13px;color:var(--text-secondary);">
+                    Download the latest LocalAgent release for your platform and extract it to a local directory.
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-dim);border:1px solid var(--accent-border);
+                        display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">2</div>
+            <div>
+                <div style="font-weight:600;font-size:14px;margin-bottom:3px;">Create config.agent.json</div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">
+                    Create <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-size:12px;">config.agent.json</code> in the same directory.
+                    <strong style="color:var(--accent);">Your exchange API key only exists locally — it is never uploaded to this server.</strong>
+                </div>
+                <pre style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;
+                            font-family:'JetBrains Mono',monospace;overflow-x:auto;color:var(--text-secondary);">{
+  "SaaSUrl": "wss://your-quantsaas-domain/ws/agent",
+  "Email": "@(AppState.UserEmail ?? "your@email.com")",
+  "Password": "••••••••",
+  "ExchangeApiKey": "YOUR_BITGET_API_KEY",
+  "ExchangeApiSecret": "YOUR_BITGET_SECRET",
+  "ExchangePassphrase": "YOUR_PASSPHRASE",
+  "Sandbox": false
+}</pre>
+            </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-dim);border:1px solid var(--accent-border);
+                        display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">3</div>
+            <div>
+                <div style="font-weight:600;font-size:14px;margin-bottom:3px;">Start the Agent</div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Run the agent from the command line:</div>
+                <pre style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;
+                            font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">dotnet QuantSaaS.Agent.dll</pre>
+                <div style="font-size:13px;color:var(--text-secondary);margin-top:6px;">
+                    The agent will authenticate, connect via WebSocket, and appear as <strong style="color:var(--accent);">Connected</strong> above.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SystemStatusResponse? _status;
+    private System.Timers.Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated) return;
+        await RefreshStatus();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _timer = new System.Timers.Timer(30_000);
+            _timer.Elapsed += async (_, _) => { await RefreshStatus(); await InvokeAsync(StateHasChanged); };
+            _timer.Start();
+        }
+    }
+
+    private async Task RefreshStatus()
+    {
+        _status = await Api.GetSystemStatusAsync();
+        StateHasChanged();
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

@@ -3,23 +3,21 @@ using QuantSaaS.Core.Models;
 namespace QuantSaaS.Core.Interfaces;
 
 /// <summary>
-/// Pure strategy interface.
-/// Iron Rule: Step() is a pure function – deterministic, no I/O, no timers,
-/// no network calls, no database access, no DateTime.Now.
-/// Identical implementation is used for both backtest and live trading.
+/// Pure strategy interface. Same Step() called for both backtest and live trading.
+/// Iron Rule: Step() MUST be deterministic and side-effect-free.
+/// No if(isBacktest) branching allowed anywhere in implementations.
 /// </summary>
 public interface IPureStrategy
 {
-    /// <summary>Strategy unique identifier (e.g., "btc-spot-v1", "us-stock-v1").</summary>
     string StrategyId { get; }
-
-    /// <summary>Human-readable display name (no internal terms).</summary>
     string DisplayName { get; }
+    string Version { get; }
+    bool IsSpotOnly { get; }
 
     /// <summary>
     /// Pure function: StrategyInput → StrategyOutput.
-    /// MUST NOT: perform I/O, access system clock, read/write database, call network.
-    /// MUST: be deterministic – same input always produces identical output.
+    /// MUST NOT: perform I/O, access timers, read/write DB, call network.
+    /// MUST: be deterministic - same input → identical output.
     /// </summary>
     StrategyOutput Step(StrategyInput input);
 }

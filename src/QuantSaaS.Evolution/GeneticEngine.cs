@@ -1,203 +1,243 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using QuantSaaS.Core.Models;
+using QuantSaaS.Quant;
 
 namespace QuantSaaS.Evolution;
 
-/// <summary>
-/// Genetic Algorithm evolution engine.
-/// Drives the full population lifecycle via the IEvolvableStrategy 8-verb interface.
-/// Iron Rule: This class has ZERO knowledge of chromosome field names.
-/// New strategies require only a new IEvolvableStrategy implementation, never touching this class.
-/// </summary>
-public sealed class GeneticEngine
+public class EpochConfig
 {
-    // ── Defaults ──────────────────────────────────────────────────────────────
+    public int PopSize { get; set; } = 300;
+    public int MaxGenerations { get; set; } = 25;
+    public SpawnPoint? SpawnPointOverride { get; set; }
+    public IReadOnlyList<Chromosome>? PreviousElites { get; set; }
+    public Action<int, double, double, double>? OnProgress { get; set; }
+    public bool TestMode { get; set; } = false;
+}
 
-    public int PopulationSize { get; init; } = 300;
-    public int MaxGenerations { get; init; } = 25;
-    public int ElitismCount { get; init; } = 8;
-    public int TournamentSize { get; init; } = 3;
+public record EpochResult
+{
+    public Chromosome ChampionChromosome { get; init; } = null!;
+    public SpawnPoint SpawnPoint { get; init; } = null!;
+    public string ParamPackJson { get; init; } = null!;
+    public double ScoreTotal { get; init; }
+    public decimal MaxDrawdown { get; init; }
+    public WindowScore[]? WindowScores { get; init; }
+}
 
-    private double _mutationProbability = 0.15;
-    private double _mutationScale = 1.0;
+/// <summary>
+/// GA Evolution Engine. Knows nothing about chromosome fields - uses 8-verb interface.
+/// Full lifecycle: elite init → concurrent evaluation → tournament selection →
+/// uniform crossover → additive Gaussian mutation → elite preservation → mutation ramp.
+/// </summary>
+public class GeneticEngine
+{
+    private readonly IEvolvableStrategy _strategy;
+    private readonly ILogger<GeneticEngine>? _logger;
 
-    private const double MutationProbMax = 0.55;
-    private const double MutationScaleMax = 3.0;
-    private const double MutationProbRamp = 1.25;
-    private const double MutationScaleRamp = 1.25;
-    private const int EarlyStopPatience = 5;
-    private const double EarlyStopMinDelta = 0.001;
+    public int PopulationSize { get; set; } = 300;
+    public int MaxGenerations { get; set; } = 25;
+    public int EliteCount { get; set; } = 8;
+    public int TournamentSize { get; set; } = 3;
+    public double MutationProbability { get; set; } = 0.15;
+    public double MutationScale { get; set; } = 1.0;
+    public double MutationProbMax { get; set; } = 0.55;
+    public double MutationScaleMax { get; set; } = 3.0;
+    public double RampFactor { get; set; } = 1.25;
+    public int EarlyStopPatience { get; set; } = 5;
+    public double EarlyStopMinDelta { get; set; } = 0.001;
 
-    private const decimal FatalScore = -99999m;
+    public GeneticEngine(IEvolvableStrategy strategy, ILogger<GeneticEngine>? logger = null)
+    {
+        _strategy = strategy;
+        _logger = logger;
+    }
 
-    // ── Public API ────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Runs a GA epoch over the provided evaluable plan.
-    /// Returns the best chromosome found along with its fitness result.
-    /// </summary>
-    public (Chromosome Best, FitnessResult BestFitness) RunEpoch(
-        IEvolvableStrategy strategy,
-        EvaluablePlan plan,
-        Chromosome? eliteSeed = null,
+    public async Task<EpochResult> RunEpochAsync(EvaluablePlan plan, EpochConfig config,
         CancellationToken ct = default)
     {
-        int seed = Environment.TickCount;
-        var masterRng = new Random(seed);
+        if (config.TestMode) { PopulationSize = 10; MaxGenerations = 3; }
 
-        // ── Population initialisation ─────────────────────────────────────────
-        var population = InitialisePopulation(strategy, plan, eliteSeed, masterRng);
+        var spawn = config.SpawnPointOverride ?? SpawnPoint.Default;
 
-        FitnessResult[] fitnesses = EvaluateAll(strategy, plan, population);
-        int bestIdx = FindBest(fitnesses);
-        decimal bestScore = fitnesses[bestIdx].ScoreTotal;
-        int stagnantGenerations = 0;
+        // Step 1: Initialize population with elite seeding
+        var population = InitializePopulation(config.PreviousElites);
 
-        for (int gen = 0; gen < MaxGenerations && !ct.IsCancellationRequested; gen++)
+        // Step 2: Initial evaluation
+        var cache = new ConcurrentDictionary<string, FitnessResult>();
+        var fitness = await EvaluatePopulationAsync(population, plan, cache, ct);
+
+        double bestScore = fitness.Max();
+        int patience = 0;
+        double mutProb = MutationProbability;
+        double mutScale = MutationScale;
+
+        for (int gen = 0; gen < MaxGenerations; gen++)
         {
-            // ── Elites ────────────────────────────────────────────────────────
-            var nextPop = new Chromosome[PopulationSize];
-            var eliteIndices = TopNIndices(fitnesses, ElitismCount);
-            for (int i = 0; i < ElitismCount; i++)
-                nextPop[i] = population[eliteIndices[i]];
+            ct.ThrowIfCancellationRequested();
 
-            // ── Offspring ─────────────────────────────────────────────────────
-            for (int i = ElitismCount; i < PopulationSize; i++)
+            // Sort population by fitness descending
+            var sorted = population.Zip(fitness, (c, f) => (c, f))
+                .OrderByDescending(x => x.f).ToList();
+
+            double currentBest = sorted[0].f;
+            double improvement = currentBest - bestScore;
+
+            if (improvement <= EarlyStopMinDelta)
             {
-                var p1 = population[TournamentSelect(fitnesses, masterRng)];
-                var p2 = population[TournamentSelect(fitnesses, masterRng)];
-                var child = strategy.Crossover(p1, p2, masterRng);
-                strategy.Mutate(child, _mutationProbability, _mutationScale, masterRng);
-                nextPop[i] = child;
-            }
-
-            population = nextPop;
-            fitnesses = EvaluateAll(strategy, plan, population);
-            bestIdx = FindBest(fitnesses);
-
-            decimal currentBest = fitnesses[bestIdx].ScoreTotal;
-            if (currentBest - bestScore > (decimal)EarlyStopMinDelta)
-            {
-                bestScore = currentBest;
-                stagnantGenerations = 0;
-                _mutationProbability = 0.15;
-                _mutationScale = 1.0;
+                patience++;
+                if (patience >= EarlyStopPatience)
+                {
+                    if (mutProb < MutationProbMax || mutScale < MutationScaleMax)
+                    {
+                        mutProb = Math.Min(MutationProbMax, mutProb * RampFactor);
+                        mutScale = Math.Min(MutationScaleMax, mutScale * RampFactor);
+                        _logger?.LogInformation("Gen {Gen}: Mutation ramp → Prob={P:F3}, Scale={S:F3}", gen, mutProb, mutScale);
+                        patience = 0;
+                    }
+                    else
+                    {
+                        _logger?.LogInformation("Gen {Gen}: Early stop (both caps reached)", gen);
+                        break;
+                    }
+                }
             }
             else
             {
-                stagnantGenerations++;
-                if (stagnantGenerations >= EarlyStopPatience)
-                {
-                    _mutationProbability = Math.Min(MutationProbMax, _mutationProbability * MutationProbRamp);
-                    _mutationScale = Math.Min(MutationScaleMax, _mutationScale * MutationScaleRamp);
-
-                    // Early stop only when both limits hit and still no improvement
-                    if (_mutationProbability >= MutationProbMax && _mutationScale >= MutationScaleMax)
-                        break;
-                }
+                patience = 0;
+                bestScore = currentBest;
             }
+
+            config.OnProgress?.Invoke(gen, currentBest, mutProb, mutScale);
+
+            // Build next generation
+            var nextGen = new Chromosome[PopulationSize];
+            // Elite preservation: top EliteCount go unchanged
+            for (int i = 0; i < Math.Min(EliteCount, sorted.Count); i++)
+                nextGen[i] = sorted[i].c.DeepClone();
+
+            // Fill rest with tournament → crossover → mutate
+            var rng = new Random();
+            for (int i = EliteCount; i < PopulationSize; i++)
+            {
+                var p1 = TournamentSelect(sorted, rng);
+                var p2 = TournamentSelect(sorted, rng);
+                var child = _strategy.Crossover(p1, p2, rng);
+                _strategy.Mutate(child, mutProb, mutScale, rng);
+                nextGen[i] = child;
+            }
+
+            population = nextGen;
+            fitness = await EvaluatePopulationAsync(population, plan, cache, ct);
         }
 
-        return (population[bestIdx], fitnesses[bestIdx]);
+        // Deliver champion
+        int champIdx = fitness.Select((f, i) => (f, i)).OrderByDescending(x => x.f).First().i;
+        var champion = population[champIdx];
+        var champFitness = cache.Values
+            .OrderByDescending(f => f.ScoreTotal)
+            .FirstOrDefault() ?? new FitnessResult();
+
+        return new EpochResult
+        {
+            ChampionChromosome = champion,
+            SpawnPoint = spawn,
+            ParamPackJson = _strategy.EncodeResult(champion, spawn),
+            ScoreTotal = fitness[champIdx],
+            MaxDrawdown = champFitness.MaxDrawdown,
+            WindowScores = champFitness.WindowScores
+        };
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    private Chromosome[] InitialisePopulation(
-        IEvolvableStrategy strategy,
-        EvaluablePlan plan,
-        Chromosome? eliteSeed,
-        Random rng)
+    private Chromosome[] InitializePopulation(IReadOnlyList<Chromosome>? elites)
     {
+        var rng = new Random();
         var pop = new Chromosome[PopulationSize];
 
-        // Index 0: seed champion
-        pop[0] = eliteSeed != null
-            ? strategy.DecodeElite(strategy.EncodeResult(eliteSeed, plan.Spawn))
-            : strategy.DecodeElite(null);
-
-        int remaining = PopulationSize - 1;
-        int fromElite = eliteSeed != null ? (int)(remaining * 0.10) : 0;
-        int strongMutant = eliteSeed != null ? (int)(remaining * 0.40) : 0;
-        int random = remaining - fromElite - strongMutant;
-
-        int idx = 1;
-        // 10%: exact elite copies
-        for (int i = 0; i < fromElite; i++, idx++)
+        if (elites != null && elites.Count > 0)
         {
-            pop[idx] = strategy.DecodeElite(strategy.EncodeResult(eliteSeed!, plan.Spawn));
+            pop[0] = elites[0].DeepClone(); // Index 0 = current champion
+            int remaining = PopulationSize - 1;
+            int copyCount = (int)Math.Round(remaining * 0.10);
+            int reinforceCount = (int)Math.Round(remaining * 0.40);
+
+            int idx = 1;
+            for (int i = 0; i < copyCount && idx < PopulationSize; i++)
+                pop[idx++] = elites[rng.Next(elites.Count)].DeepClone();
+
+            for (int i = 0; i < reinforceCount && idx < PopulationSize; i++)
+            {
+                var baseGene = elites[rng.Next(elites.Count)].DeepClone();
+                _strategy.Mutate(baseGene, 0.15, 1.5, rng); // Fixed init mutation
+                pop[idx++] = baseGene;
+            }
+
+            while (idx < PopulationSize)
+                pop[idx++] = _strategy.Sample(rng);
         }
-        // 40%: elite + strong mutation
-        for (int i = 0; i < strongMutant; i++, idx++)
+        else
         {
-            var c = strategy.DecodeElite(strategy.EncodeResult(eliteSeed!, plan.Spawn));
-            strategy.Mutate(c, 0.15, 1.5, rng);
-            pop[idx] = c;
+            pop[0] = Chromosome.DefaultSeed;
+            for (int i = 1; i < PopulationSize; i++)
+                pop[i] = _strategy.Sample(rng);
         }
-        // 50%: fully random
-        for (int i = 0; i < random; i++, idx++)
-            pop[idx] = strategy.Sample(rng);
 
         return pop;
     }
 
-    private FitnessResult[] EvaluateAll(
-        IEvolvableStrategy strategy,
+    private async Task<double[]> EvaluatePopulationAsync(
+        Chromosome[] population,
         EvaluablePlan plan,
-        Chromosome[] population)
+        ConcurrentDictionary<string, FitnessResult> cache,
+        CancellationToken ct)
     {
-        int workers = Math.Min(Environment.ProcessorCount, PopulationSize);
-        var results = new FitnessResult[population.Length];
-        var cache = new ConcurrentDictionary<string, FitnessResult>();
+        var fitness = new double[population.Length];
+        int workers = Math.Min(Environment.ProcessorCount, population.Length);
+        var semaphore = new SemaphoreSlim(workers);
+        var tasks = new Task[population.Length];
 
-        Parallel.For(0, population.Length, new ParallelOptions { MaxDegreeOfParallelism = workers }, i =>
+        for (int i = 0; i < population.Length; i++)
         {
-            string fp = strategy.Fingerprint(population[i]);
-            if (cache.TryGetValue(fp, out var cached))
+            int idx = i;
+            var gene = population[i];
+            tasks[i] = Task.Run(() =>
             {
-                results[i] = cached;
-            }
-            else
-            {
-                var r = strategy.Evaluate(plan, population[i]);
-                cache[fp] = r;
-                results[i] = r;
-            }
-        });
-
-        return results;
-    }
-
-    private int TournamentSelect(FitnessResult[] fitnesses, Random rng)
-    {
-        int best = rng.Next(fitnesses.Length);
-        for (int t = 1; t < TournamentSize; t++)
-        {
-            int challenger = rng.Next(fitnesses.Length);
-            if (fitnesses[challenger].ScoreTotal > fitnesses[best].ScoreTotal)
-                best = challenger;
+                semaphore.Wait(ct);
+                try
+                {
+                    var fp = _strategy.Fingerprint(gene);
+                    if (!cache.TryGetValue(fp, out var result))
+                    {
+                        result = _strategy.Evaluate(plan, gene);
+                        cache.TryAdd(fp, result);
+                    }
+                    fitness[idx] = result.ScoreTotal;
+                }
+                finally { semaphore.Release(); }
+            }, ct);
         }
-        return best;
+
+        await Task.WhenAll(tasks);
+        return fitness;
     }
 
-    private static int FindBest(FitnessResult[] fitnesses)
+    private Chromosome TournamentSelect(List<(Chromosome c, double f)> sorted, Random rng)
     {
-        int best = 0;
-        for (int i = 1; i < fitnesses.Length; i++)
-            if (fitnesses[i].ScoreTotal > fitnesses[best].ScoreTotal)
-                best = i;
-        return best;
-    }
+        Chromosome? best = null;
+        double bestScore = double.MinValue;
+        var used = new HashSet<int>();
 
-    private static int[] TopNIndices(FitnessResult[] fitnesses, int n)
-    {
-        var indices = new List<int>(fitnesses.Length);
-        for (int i = 0; i < fitnesses.Length; i++) indices.Add(i);
-        indices.Sort((a, b) => fitnesses[b].ScoreTotal.CompareTo(fitnesses[a].ScoreTotal));
-        return indices[..n].ToArray();
+        int attempts = 0;
+        while (used.Count < TournamentSize && attempts < TournamentSize * 3)
+        {
+            attempts++;
+            int idx = rng.Next(sorted.Count);
+            if (used.Add(idx) && sorted[idx].f > bestScore)
+            {
+                bestScore = sorted[idx].f;
+                best = sorted[idx].c;
+            }
+        }
+        return best ?? sorted[0].c;
     }
 }
