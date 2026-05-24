@@ -147,7 +147,6 @@
     private async Task RefreshStatus()
     {
         _status = await Api.GetSystemStatusAsync();
-        StateHasChanged();
     }
 
     public void Dispose() => _timer?.Dispose();
