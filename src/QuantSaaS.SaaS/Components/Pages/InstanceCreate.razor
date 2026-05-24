@@ -1,0 +1,145 @@
+@page "/instances/new"
+@rendermode InteractiveServer
+@inject AppState AppState
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Create Instance — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="max-width:600px;">
+    <div style="margin-bottom:24px;">
+        <a href="/instances" style="font-size:13px;color:var(--text-muted);">← Back to Instances</a>
+        <h2 style="font-size:20px;font-weight:700;margin:8px 0 4px;">Create Strategy Instance</h2>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="qs-step-indicator">
+        <div class="qs-step @(_step >= 1 ? "active" : "") @(_step > 1 ? "done" : "")">
+            <div class="qs-step-num">@(_step > 1 ? "✓" : "1")</div>
+            <span>Choose Strategy</span>
+        </div>
+        <div class="qs-step-line"></div>
+        <div class="qs-step @(_step >= 2 ? "active" : "")">
+            <div class="qs-step-num">2</div>
+            <span>Configure</span>
+        </div>
+    </div>
+
+    @if (_error != null)
+    {
+        <div class="qs-alert qs-alert-error">⚠ @_error</div>
+    }
+
+    @if (_step == 1)
+    {
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            @foreach (var tpl in _templates)
+            {
+                <div class="qs-template-card @(_selectedTemplate == tpl.Id ? "selected" : "")"
+                     @onclick="() => _selectedTemplate = tpl.Id"
+                     style="border-top-color:@tpl.Color;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="font-size:22px;">@tpl.Icon</div>
+                        <div>
+                            <div class="qs-template-name" style="font-size:14px;">@tpl.Name</div>
+                            <div style="font-size:11px;color:var(--text-muted);">@tpl.Pair</div>
+                        </div>
+                        @if (_selectedTemplate == tpl.Id)
+                        {
+                            <div style="margin-left:auto;color:var(--accent);font-size:18px;">✓</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <div style="margin-top:20px;">
+            <button class="qs-btn qs-btn-primary" @onclick="GoToStep2" disabled="@(_selectedTemplate == null)">
+                Next: Configure →
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="qs-card">
+            @{
+                var tpl = _templates.First(t => t.Id == _selectedTemplate!);
+            }
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                <span style="font-size:18px;">@tpl.Icon</span>
+                <span style="font-weight:600;">@tpl.Name</span>
+                <span class="qs-badge qs-badge-champion">Selected</span>
+            </div>
+
+            <div class="qs-form-group">
+                <label class="qs-label">Trading Pair</label>
+                <input class="qs-input" @bind="_symbol" placeholder="BTCUSDT" />
+            </div>
+            <div class="qs-form-group">
+                <label class="qs-label">Aggregation Period</label>
+                <select class="qs-select" @bind="_period">
+                    <option value="1d">Daily (1D)</option>
+                    <option value="4h">4-Hour (4H)</option>
+                    <option value="1h">1-Hour (1H)</option>
+                </select>
+            </div>
+            <div class="qs-form-group">
+                <label class="qs-label">Initial Fund Quota (USDT)</label>
+                <input class="qs-input mono" @bind="_fundQuota" type="number" min="100" step="100" placeholder="10000" />
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">This is the capital allocated to this instance</div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="qs-btn qs-btn-ghost" @onclick="() => _step = 1">← Back</button>
+                <button class="qs-btn qs-btn-primary" @onclick="Submit" disabled="@_submitting">
+                    @(_submitting ? "Creating…" : "Create Instance")
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private int _step = 1;
+    private string? _selectedTemplate;
+    private string _symbol = "BTCUSDT";
+    private string _period = "1d";
+    private decimal _fundQuota = 10000;
+    private bool _submitting;
+    private string? _error;
+
+    private record TemplateOption(string Id, string Name, string Pair, string Color, string Icon);
+    private readonly List<TemplateOption> _templates = new()
+    {
+        new("btc-spot-dca", "Dynamic Balance Strategy", "BTC/USDT", "#2dd4bf", "₿"),
+        new("eth-spot-dca", "Ethereum Accumulator", "ETH/USDT", "#0ea5e9", "Ξ"),
+    };
+
+    protected override void OnInitialized()
+    {
+        if (!AppState.IsAuthenticated) Nav.NavigateTo("/login");
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Nav.Uri).Query);
+        if (query.TryGetValue("template", out var t) && _templates.Any(x => x.Id == t.ToString()))
+            _selectedTemplate = t.ToString();
+    }
+
+    private void GoToStep2()
+    {
+        if (_selectedTemplate == null) return;
+        _symbol = _selectedTemplate.StartsWith("eth") ? "ETHUSDT" : "BTCUSDT";
+        _step = 2;
+    }
+
+    private async Task Submit()
+    {
+        _submitting = true;
+        _error = null;
+        var (ok, instanceId) = await Api.CreateInstanceAsync(new CreateInstanceRequest(_symbol, _period, _fundQuota));
+        _submitting = false;
+        if (ok && instanceId.HasValue)
+            Nav.NavigateTo($"/?instance={instanceId}");
+        else
+            _error = "Failed to create instance. Please try again.";
+    }
+}

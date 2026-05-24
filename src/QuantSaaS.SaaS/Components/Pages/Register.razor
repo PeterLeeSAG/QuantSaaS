@@ -1,0 +1,67 @@
+@page "/register"
+@layout QuantSaaS.SaaS.Components.Layout.BlankLayout
+@rendermode InteractiveServer
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Register — QuantSaaS</PageTitle>
+
+<div class="qs-auth-page">
+    <div class="qs-auth-box">
+        <div class="qs-auth-logo">
+            <div class="brand-icon">⚡</div>
+            <div class="qs-auth-title">Create Account</div>
+            <div class="qs-auth-sub">Start your QuantSaaS journey</div>
+        </div>
+
+        @if (_error != null)
+        {
+            <div class="qs-alert qs-alert-error">⚠ @_error</div>
+        }
+        @if (_success)
+        {
+            <div class="qs-alert qs-alert-success">✓ Account created! <a href="/login">Sign in now</a></div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="HandleRegister">
+            <div class="qs-form-group">
+                <label class="qs-label">Email</label>
+                <InputText @bind-Value="_model.Email" class="qs-input" placeholder="you@example.com" />
+            </div>
+            <div class="qs-form-group">
+                <label class="qs-label">Password</label>
+                <InputText @bind-Value="_model.Password" class="qs-input" placeholder="••••••••" type="password" />
+            </div>
+            <button type="submit" class="qs-btn qs-btn-primary" style="width:100%;justify-content:center;margin-top:8px;" disabled="@_loading">
+                @(_loading ? "Creating…" : "Create Account")
+            </button>
+        </EditForm>
+
+        <hr class="qs-divider" style="margin-top:20px;" />
+        <p style="text-align:center;font-size:13px;color:var(--text-muted)">
+            Already have an account? <a href="/login">Sign in</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private RegisterModel _model = new();
+    private bool _loading, _success;
+    private string? _error;
+
+    private async Task HandleRegister()
+    {
+        _loading = true;
+        _error = null;
+        var (ok, error) = await Api.RegisterAsync(_model.Email, _model.Password);
+        _loading = false;
+        if (ok) _success = true;
+        else _error = error ?? "Registration failed";
+    }
+
+    private class RegisterModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

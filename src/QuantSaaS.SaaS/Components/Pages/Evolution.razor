@@ -1,0 +1,276 @@
+@page "/evolution"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject AppState AppState
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Optimization Lab — QuantSaaS</PageTitle>
+
+@if (!AppState.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+
+<div style="margin-bottom:20px;">
+    <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">Optimization Lab</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin:0;">Evolve strategy parameters using genetic algorithms</p>
+</div>
+
+<div class="qs-tabs">
+    <button class="qs-tab @(_tab == "optimize" ? "active" : "")" @onclick='() => _tab = "optimize"'>🧬 Parameter Optimization</button>
+    <button class="qs-tab @(_tab == "library" ? "active" : "")" @onclick='() => _tab = "library"'>📚 Genome Library</button>
+</div>
+
+@if (_tab == "optimize")
+{
+    @if (RunningTask != null)
+    {
+        <div class="qs-card qs-card-accent" style="margin-bottom:16px;">
+            <div class="qs-card-header">
+                <span class="qs-card-title">Optimization in Progress</span>
+                <span class="qs-badge qs-badge-running">Running</span>
+            </div>
+            <div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+                    <span>Generation @RunningTask.Progress / @RunningTask.MaxGenerations</span>
+                    <span>@(RunningTask.MaxGenerations > 0 ? (RunningTask.Progress * 100 / RunningTask.MaxGenerations) : 0)%</span>
+                </div>
+                <div class="qs-progress">
+                    <div class="qs-progress-bar" style="width:@(RunningTask.MaxGenerations > 0 ? RunningTask.Progress * 100 / RunningTask.MaxGenerations : 0)%;"></div>
+                </div>
+            </div>
+            <div class="qs-grid qs-grid-3" style="gap:12px;">
+                <div class="qs-stat-card">
+                    <div class="qs-stat-label">Population Size</div>
+                    <div class="qs-stat-value mono" style="font-size:18px;">@RunningTask.PopSize</div>
+                </div>
+                <div class="qs-stat-card">
+                    <div class="qs-stat-label">Best Score</div>
+                    <div class="qs-stat-value mono" style="font-size:18px;">@(RunningTask.BestScore?.ToString("F3") ?? "—")</div>
+                </div>
+                <div class="qs-stat-card">
+                    <div class="qs-stat-label">Max Drawdown</div>
+                    <div class="qs-stat-value mono text-danger" style="font-size:18px;">@(RunningTask.MaxDrawdown?.ToString("P1") ?? "—")</div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="qs-card" style="margin-bottom:16px;">
+            <div class="qs-card-header">
+                <span class="qs-card-title">Launch New Optimization Run</span>
+            </div>
+
+            @if (!_showTrigger)
+            {
+                <button class="qs-btn qs-btn-primary" @onclick="() => _showTrigger = true">🚀 Start Parameter Optimization</button>
+            }
+            else
+            {
+                <div class="qs-grid qs-grid-2" style="gap:16px;margin-bottom:16px;">
+                    <div class="qs-form-group" style="margin:0;">
+                        <label class="qs-label">Population Size</label>
+                        <input class="qs-input mono" @bind="_popSize" type="number" min="10" max="500" />
+                    </div>
+                    <div class="qs-form-group" style="margin:0;">
+                        <label class="qs-label">Max Generations</label>
+                        <input class="qs-input mono" @bind="_maxGen" type="number" min="5" max="50" />
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button class="qs-btn qs-btn-primary" @onclick="TriggerEvolution" disabled="@_triggering">
+                        @(_triggering ? "Launching…" : "Launch Optimization")
+                    </button>
+                    <button class="qs-btn qs-btn-ghost" @onclick="() => _showTrigger = false">Cancel</button>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Task history -->
+    <div class="qs-card">
+        <div class="qs-card-header">
+            <span class="qs-card-title">Optimization History</span>
+        </div>
+        @if (_tasks.Count == 0)
+        {
+            <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No optimization runs yet</div>
+        }
+        else
+        {
+            <table class="qs-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Population</th>
+                        <th>Max Gen</th>
+                        <th>Progress</th>
+                        <th>Started</th>
+                        <th>Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var task in _tasks)
+                    {
+                        <tr>
+                            <td><span class="qs-badge @TaskBadge(task.Status)">@TaskLabel(task.Status)</span></td>
+                            <td class="mono">@task.PopSize</td>
+                            <td class="mono">@task.MaxGenerations</td>
+                            <td>
+                                <div class="qs-progress" style="width:80px;">
+                                    <div class="qs-progress-bar" style="width:@(task.MaxGenerations > 0 ? task.Progress * 100 / task.MaxGenerations : 0)%;"></div>
+                                </div>
+                            </td>
+                            <td style="font-size:12px;color:var(--text-muted);">@RelativeTime(task.CreatedAt)</td>
+                            <td style="font-size:12px;color:var(--text-muted);">@(task.CompletedAt.HasValue ? RelativeTime(task.CompletedAt.Value) : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    @if (ChampionGenome != null)
+    {
+        <div class="qs-gene-card champion" style="margin-top:16px;">
+            <div class="qs-card-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="qs-badge qs-badge-champion">Current Best Parameters</span>
+                    <span style="font-size:12px;color:var(--text-muted);">Promoted @RelativeTime(ChampionGenome.PromotedAt ?? ChampionGenome.CreatedAt)</span>
+                </div>
+            </div>
+            <div class="qs-grid qs-grid-4" style="gap:12px;">
+                <div class="qs-stat-card">
+                    <div class="qs-stat-label">Total Score</div>
+                    <div class="qs-stat-value mono" style="font-size:18px;color:var(--accent);">@ChampionGenome.ScoreTotal.ToString("F3")</div>
+                </div>
+                <div class="qs-stat-card">
+                    <div class="qs-stat-label">Max Drawdown</div>
+                    <div class="qs-stat-value mono text-danger" style="font-size:18px;">@ChampionGenome.MaxDrawdown.ToString("P1")</div>
+                </div>
+                @foreach (var ws in ChampionGenome.WindowScores.Take(2))
+                {
+                    <div class="qs-stat-card">
+                        <div class="qs-stat-label">@ws.Label Score</div>
+                        <div class="qs-stat-value mono" style="font-size:18px;">@ws.SliceScore.ToString("F3")</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="qs-card-title" style="margin-bottom:16px;">All parameter generations, newest first</div>
+
+    @if (_genomes.Count == 0)
+    {
+        <div class="qs-card" style="text-align:center;padding:40px;color:var(--text-muted);">
+            No genome records yet. Run a parameter optimization to generate candidates.
+        </div>
+    }
+    else
+    {
+        @foreach (var g in _genomes)
+        {
+            <div class="qs-gene-card @(g.Role == "champion" ? "champion" : "")" style="margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="qs-badge @(g.Role == "champion" ? "qs-badge-champion" : g.Role == "challenger" ? "qs-badge-challenger" : "qs-badge-stopped")">
+                            @RoleLabel(g.Role)
+                        </span>
+                        <span style="font-size:12px;color:var(--text-muted);">@RelativeTime(g.CreatedAt)</span>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        @if (g.Role == "challenger")
+                        {
+                            @if (_promoteConfirm == g.Id)
+                            {
+                                <button class="qs-btn qs-btn-primary qs-btn-xs" @onclick="() => PromoteGenome(g.Id)">Confirm Promote</button>
+                                <button class="qs-btn qs-btn-ghost qs-btn-xs" @onclick="() => _promoteConfirm = Guid.Empty">Cancel</button>
+                            }
+                            else
+                            {
+                                <button class="qs-btn qs-btn-ghost qs-btn-xs" @onclick="() => _promoteConfirm = g.Id">Promote to Best</button>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="qs-grid qs-grid-4" style="gap:8px;">
+                    <div>
+                        <div style="font-size:10px;color:var(--text-muted);">Score</div>
+                        <div class="mono" style="font-size:14px;font-weight:600;color:var(--accent);">@g.ScoreTotal.ToString("F3")</div>
+                    </div>
+                    <div>
+                        <div style="font-size:10px;color:var(--text-muted);">Max DD</div>
+                        <div class="mono text-danger" style="font-size:14px;font-weight:600;">@g.MaxDrawdown.ToString("P1")</div>
+                    </div>
+                    @foreach (var ws in g.WindowScores.Take(2))
+                    {
+                        <div>
+                            <div style="font-size:10px;color:var(--text-muted);">@ws.Label</div>
+                            <div class="mono" style="font-size:14px;font-weight:600;">@ws.SliceScore.ToString("F3")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    private string _tab = "optimize";
+    private List<EvolutionTaskSummary> _tasks = new();
+    private List<GenomeSummary> _genomes = new();
+    private bool _showTrigger;
+    private bool _triggering;
+    private int _popSize = 300;
+    private int _maxGen = 25;
+    private Guid _promoteConfirm;
+    private System.Timers.Timer? _pollTimer;
+
+    private EvolutionTaskSummary? RunningTask => _tasks.FirstOrDefault(t => t.Status == "running");
+    private GenomeSummary? ChampionGenome => _genomes.FirstOrDefault(g => g.Role == "champion");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated) return;
+        await Load();
+
+        _pollTimer = new System.Timers.Timer(5000);
+        _pollTimer.Elapsed += async (_, _) =>
+        {
+            await Load();
+            await InvokeAsync(StateHasChanged);
+        };
+        _pollTimer.Start();
+    }
+
+    private async Task Load()
+    {
+        _tasks = await Api.GetEvolutionTasksAsync();
+        _genomes = await Api.GetGenomesAsync();
+    }
+
+    private async Task TriggerEvolution()
+    {
+        _triggering = true;
+        await Api.TriggerEvolutionAsync(new TriggerEvolutionRequest(_popSize, _maxGen, null));
+        _triggering = false;
+        _showTrigger = false;
+        await Load();
+    }
+
+    private async Task PromoteGenome(Guid id)
+    {
+        await Api.PromoteGenomeAsync(id);
+        _promoteConfirm = Guid.Empty;
+        await Load();
+    }
+
+    private static string TaskBadge(string s) => s switch { "running" => "qs-badge-running", "completed" => "qs-badge-champion", "failed" => "qs-badge-error", _ => "qs-badge-stopped" };
+    private static string TaskLabel(string s) => s switch { "pending" => "Queued", "running" => "Running", "completed" => "Completed", "failed" => "Failed", _ => s };
+    private static string RoleLabel(string s) => s switch { "champion" => "Current Best", "challenger" => "Candidate", "retired" => "Archived", _ => s };
+    private static string RelativeTime(DateTime dt) { var d = DateTime.UtcNow - dt; return d.TotalDays >= 1 ? $"{(int)d.TotalDays}d ago" : d.TotalHours >= 1 ? $"{(int)d.TotalHours}h ago" : $"{(int)d.TotalMinutes}m ago"; }
+
+    public void Dispose() => _pollTimer?.Dispose();
+}
