@@ -37,8 +37,8 @@ public class WsHub
 
         var msg = JsonSerializer.Serialize(new { type = "command", payload = cmd });
         var bytes = Encoding.UTF8.GetBytes(msg);
-        ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None)
-            .ConfigureAwait(false).GetAwaiter().GetResult();
+        // Fire-and-forget the async send; do not block the caller thread
+        _ = ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
         return true;
     }
 
@@ -173,13 +173,13 @@ public class WsHub
                 execution.Status = report.Execution.Status == "filled" ? "filled" : "failed";
                 execution.FilledAt = DateTime.UtcNow;
 
-                if (report.Execution.Status == "filled")
+                if (report.Execution.Status == "filled" && portfolio != null)
                 {
                     // Update portfolio BTC holdings
                     if (execution.LotType == "DEAD_STACK")
-                        portfolio!.DeadBtc += report.Execution.FilledQty;
+                        portfolio.DeadBtc += report.Execution.FilledQty;
                     else
-                        portfolio!.FloatBtc += report.Execution.FilledQty;
+                        portfolio.FloatBtc += report.Execution.FilledQty;
 
                     db.TradeRecords.Add(new TradeRecordEntity
                     {

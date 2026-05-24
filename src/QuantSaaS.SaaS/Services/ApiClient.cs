@@ -68,24 +68,36 @@ public class ApiClient
     public async Task<(bool ok, Guid? instanceId)> CreateInstanceAsync(CreateInstanceRequest req)
     {
         SetAuth();
-        var resp = await _http.PostAsJsonAsync("/api/v1/instances", req);
-        if (!resp.IsSuccessStatusCode) return (false, null);
-        var doc = await resp.Content.ReadFromJsonAsync<JsonDocument>(JsonOpts);
-        return (true, Guid.Parse(doc!.RootElement.GetProperty("instanceId").GetString()!));
+        try
+        {
+            var resp = await _http.PostAsJsonAsync("/api/v1/instances", req);
+            if (!resp.IsSuccessStatusCode) return (false, null);
+            var doc = await resp.Content.ReadFromJsonAsync<JsonDocument>(JsonOpts);
+            return (true, Guid.Parse(doc!.RootElement.GetProperty("instanceId").GetString()!));
+        }
+        catch { return (false, null); }
     }
 
     public async Task<bool> PatchInstanceAsync(Guid id, string action)
     {
         SetAuth();
-        var resp = await _http.PatchAsJsonAsync($"/api/v1/instances/{id}", new { action });
-        return resp.IsSuccessStatusCode;
+        try
+        {
+            var resp = await _http.PatchAsJsonAsync($"/api/v1/instances/{id}", new { action });
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
     }
 
     public async Task<bool> DeleteInstanceAsync(Guid id)
     {
         SetAuth();
-        var resp = await _http.DeleteAsync($"/api/v1/instances/{id}");
-        return resp.IsSuccessStatusCode;
+        try
+        {
+            var resp = await _http.DeleteAsync($"/api/v1/instances/{id}");
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
     }
 
     // ── Dashboard ─────────────────────────────
@@ -114,8 +126,12 @@ public class ApiClient
     public async Task<bool> TriggerEvolutionAsync(TriggerEvolutionRequest req)
     {
         SetAuth();
-        var resp = await _http.PostAsJsonAsync("/api/v1/evolution/tasks", req);
-        return resp.IsSuccessStatusCode;
+        try
+        {
+            var resp = await _http.PostAsJsonAsync("/api/v1/evolution/tasks", req);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
     }
 
     public async Task<List<GenomeSummary>> GetGenomesAsync()
@@ -128,7 +144,11 @@ public class ApiClient
     public async Task<bool> PromoteGenomeAsync(Guid genomeId)
     {
         SetAuth();
-        var resp = await _http.PostAsync($"/api/v1/evolution/genomes/{genomeId}/promote", null);
-        return resp.IsSuccessStatusCode;
+        try
+        {
+            var resp = await _http.PostAsync($"/api/v1/evolution/genomes/{genomeId}/promote", null);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
     }
 }

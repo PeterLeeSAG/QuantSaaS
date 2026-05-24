@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuantSaaS.Infrastructure.Data;
@@ -9,6 +10,7 @@ namespace QuantSaaS.SaaS.Controllers;
 
 [ApiController]
 [Route("api/v1/instances")]
+[Authorize]
 public class InstancesController : ControllerBase
 {
     private readonly QuantDbContext _db;
@@ -96,7 +98,11 @@ public class InstancesController : ControllerBase
         else if (req.Action == "stop")
             await _instanceManager.StopAsync(id);
 
-        return Ok(new { status = inst.Status });
+        // Re-fetch to return the updated status that was persisted by the manager
+        var updatedStatus = (await _db.StrategyInstances
+            .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId.Value))?.Status ?? inst.Status;
+
+        return Ok(new { status = updatedStatus });
     }
 
     [HttpDelete("{id}")]

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuantSaaS.SaaS.Models;
 using QuantSaaS.SaaS.Services;
@@ -7,6 +8,7 @@ namespace QuantSaaS.SaaS.Controllers;
 
 [ApiController]
 [Route("api/v1/system")]
+[Authorize]
 public class SystemController : ControllerBase
 {
     private readonly InstanceManager _instanceManager;

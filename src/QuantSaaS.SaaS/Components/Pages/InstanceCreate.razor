@@ -135,11 +135,21 @@
     {
         _submitting = true;
         _error = null;
-        var (ok, instanceId) = await Api.CreateInstanceAsync(new CreateInstanceRequest(_symbol, _period, _fundQuota));
-        _submitting = false;
-        if (ok && instanceId.HasValue)
-            Nav.NavigateTo($"/?instance={instanceId}");
-        else
+        try
+        {
+            var (ok, instanceId) = await Api.CreateInstanceAsync(new CreateInstanceRequest(_symbol, _period, _fundQuota));
+            if (ok && instanceId.HasValue)
+                Nav.NavigateTo($"/?instance={instanceId}");
+            else
+                _error = "Failed to create instance. Please try again.";
+        }
+        catch
+        {
             _error = "Failed to create instance. Please try again.";
+        }
+        finally
+        {
+            _submitting = false;
+        }
     }
 }

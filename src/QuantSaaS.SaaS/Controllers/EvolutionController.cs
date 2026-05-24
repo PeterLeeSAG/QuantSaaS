@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuantSaaS.Infrastructure.Data;
@@ -14,6 +15,7 @@ file static class JsonElementExtensions
 
 [ApiController]
 [Route("api/v1/evolution")]
+[Authorize]
 public class EvolutionController : ControllerBase
 {
     private readonly QuantDbContext _db;
