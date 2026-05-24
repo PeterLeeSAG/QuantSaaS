@@ -1,0 +1,43 @@
+# QuantSaaS Configuration Template
+# Copy this file to config.yaml and fill in the values.
+# Iron Rule: config.agent.yaml MUST NOT contain any database, JWT, or SaaS secrets.
+# Iron Rule: config.yaml (SaaS) MUST NOT contain any broker API keys.
+
+App:
+  # Role determines which capabilities are enabled.
+  # Values: saas | lab | dev
+  # - saas: executes ticks, dispatches commands, persists state. No GA.
+  # - lab:  runs GA evolution and backtests. No live order dispatch.
+  # - dev:  unrestricted (for local development only).
+  Role: ${APP_ROLE:-dev}
+
+Server:
+  Port: 8080
+  BaseUrl: ${BASE_URL:-http://localhost:8080}
+
+Database:
+  # PostgreSQL connection string. Injected via environment variable only.
+  ConnectionString: ${DB_CONNECTION_STRING}
+
+Redis:
+  # Redis connection string. Injected via environment variable only.
+  ConnectionString: ${REDIS_CONNECTION_STRING:-localhost:6379}
+
+JWT:
+  # JWT signing secret. Injected via environment variable ONLY. Never hardcode.
+  Secret: ${JWT_SECRET}
+  ExpiryHours: 24
+
+# ── Agent credentials template (config.agent.yaml) ───────────────────────────
+# These fields are ONLY valid in config.agent.yaml on the LocalAgent machine.
+# They are shown here for documentation; SaaS config MUST NOT include this section.
+#
+# Broker:
+#   Type: alpaca               # okx | alpaca | ibkr
+#   ApiKey: <your-api-key>     # injected from file; NEVER committed to git
+#   SecretKey: <your-secret>   # injected from file; NEVER committed to git
+#   IsPaper: true              # set to false for live trading
+#
+# SaaS:
+#   WebSocketUrl: ${SAAS_WS_URL}
+#   InstanceId: <instance-uuid>

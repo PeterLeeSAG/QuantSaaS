@@ -1,37 +1,54 @@
+using System.Collections.Generic;
+
 namespace QuantSaaS.Core.Models;
 
-public enum OrderAction { None, Buy, Sell }
-public enum EngineLayer { Macro, Micro }
-public enum LotType { DeadStack, Floating, ColdSealed }
-
 /// <summary>
-/// Trading intent produced by Step(). SaaS translates this to TradeCommand.
+/// Output produced by Step(). Contains a list of trading intents.
+/// The SaaS layer translates these intents into concrete TradeCommands.
 /// </summary>
 public record StrategyOutput
 {
-    // Macro engine intent
-    public decimal MacroOrderUsdt { get; init; }
-    public OrderAction MacroAction { get; init; }
+    /// <summary>List of buy/sell intents. Empty = no action this tick.</summary>
+    public IReadOnlyList<TradingIntent> Intents { get; init; } = [];
 
-    // Micro engine intent
-    public decimal MicroOrderUsdt { get; init; }
-    public OrderAction MicroAction { get; init; }
+    /// <summary>
+    /// Updated strategy runtime state JSON blob.
+    /// SaaS persists this and rehydrates it at the next tick.
+    /// </summary>
+    public string UpdatedRuntimeStateJson { get; init; } = "{}";
 
-    // Micro Sigmoid debug info
-    public decimal TargetWeight { get; init; }
-    public decimal Signal { get; init; }
-    public decimal VolatilityRatio { get; init; }
+    /// <summary>Optional diagnostics forwarded to the audit log (non-trading signals).</summary>
+    public string? DiagnosticsJson { get; init; }
 
-    // Dead release intent (SaaS-side ledger only, no Agent command)
-    public DeadReleaseIntent? ReleaseIntent { get; init; }
-
-    // Updated runtime state (persisted after tick)
-    public StrategyRuntimeState NewRuntimeState { get; init; } = new();
+    public static StrategyOutput NoAction(string runtimeStateJson = "{}") => new()
+    {
+        UpdatedRuntimeStateJson = runtimeStateJson
+    };
 }
 
-public record DeadReleaseIntent
+/// <summary>
+/// A single abstract trading intent.
+/// SaaS converts this to a concrete TradeCommand for a specific broker.
+/// </summary>
+public record TradingIntent
 {
-    public decimal ReleaseBtc { get; init; }
-    public string Reason { get; init; } = string.Empty;
-    public bool IsSoftRelease { get; init; }
+    public TradingAction Action { get; init; }
+    public EngineLayer Engine { get; init; }
+    public LotType LotType { get; init; }
+
+    /// <summary>
+    /// For BUY intents: nominal quote-currency amount to spend.
+    /// For SELL intents: 0 (use QtyAsset instead).
+    /// </summary>
+    public decimal AmountQuote { get; init; }
+
+    /// <summary>
+    /// For SELL intents: quantity of asset to sell.
+    /// For BUY intents: 0 (use AmountQuote instead).
+    /// </summary>
+    public decimal QtyAsset { get; init; }
 }
+
+public enum TradingAction { Buy, Sell }
+public enum EngineLayer { Macro, Micro }
+public enum LotType { DeadStack, Floating, ColdSealed }

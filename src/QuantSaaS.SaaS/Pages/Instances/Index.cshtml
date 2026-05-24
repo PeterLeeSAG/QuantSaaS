@@ -1,0 +1,76 @@
+@page
+@model QuantSaaS.SaaS.Pages.Instances.IndexModel
+@{
+    ViewData["Title"] = "Instances";
+    ViewData["ActivePage"] = "Instances";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Instances</div>
+        <div class="page-sub">All active strategy instances</div>
+    </div>
+    <a class="btn-accent" href="#">+ New Instance</a>
+</div>
+
+<!-- Tabs -->
+<div class="tab-strip mb-3">
+    @foreach (var tab in new[] { "All", "Crypto", "Stock", "ETF" })
+    {
+        <a class="tab-item @(Model.Vm.ActiveTab == tab ? "active" : "")"
+           asp-page="/Instances/Index" asp-route-tab="@tab">@tab</a>
+    }
+</div>
+
+<!-- Instance cards/table -->
+<div class="dash-card">
+    <table class="dark-table">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Asset Class</th>
+                <th>Broker</th>
+                <th>Status</th>
+                <th>@QuantSaaS.Core.Models.UserTerms.TotalEquity</th>
+                <th>Last Tick</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Vm.Instances)
+            {
+                <tr>
+                    <td>
+                        <a asp-page="/Instances/Detail" asp-route-id="@row.Id"
+                           style="color:var(--accent);text-decoration:none;font-weight:600;">
+                            @row.Symbol
+                        </a>
+                    </td>
+                    <td><span class="pill badge-asset-@row.AssetClass.ToString().ToLower()">@row.AssetClass</span></td>
+                    <td style="color:var(--text-muted);font-size:0.8rem;">@row.BrokerType.ToUpperInvariant()</td>
+                    <td>
+                        <span class="pill badge-status-@row.Status.ToLower()">
+                            @(row.Status == "running" ? "● " + QuantSaaS.Core.Models.UserTerms.Running
+                              : row.Status == "error"  ? "● " + QuantSaaS.Core.Models.UserTerms.Error
+                                                       : QuantSaaS.Core.Models.UserTerms.Stopped)
+                        </span>
+                    </td>
+                    <td>$@row.Equity.ToString("N2")</td>
+                    <td style="color:var(--text-muted);font-size:0.78rem;">
+                        @(row.LastTickAt.HasValue ? row.LastTickAt.Value.ToString("HH:mm UTC") : "—")
+                    </td>
+                    <td>
+                        @if (row.Status == "running")
+                        {
+                            <button class="btn-danger-outline btn-sm">Stop</button>
+                        }
+                        else
+                        {
+                            <button class="btn-outline btn-sm">Start</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

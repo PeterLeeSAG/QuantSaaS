@@ -32,15 +32,15 @@ public static class DeadReleaseEngine
     {
         // Only release if DeadBTC has aged past the configured threshold
         var portfolio = input.Portfolio;
-        if (portfolio.DeadBtc <= 0) return new Output { Reason = "No DeadBTC" };
+        if (portfolio.DeadStackQty <= 0) return new Output { Reason = "No DeadBTC" };
 
         // Soft release: time-based aging (simplified - in prod track per-lot age)
         // Release up to MaxSoftReleaseRatio of eligible DeadBTC
-        var eligibleBtc = portfolio.DeadBtc * MaxSoftReleaseRatio;
+        var eligibleBtc = portfolio.DeadStackQty * MaxSoftReleaseRatio;
         if (eligibleBtc <= 0) return new Output { Reason = "No eligible BTC" };
 
         // Only release if there's a sell gap (FloatBTC below target floor)
-        var currentMicroWeight = portfolio.CurrentMicroWeight(input.CurrentPrice);
+        var currentMicroWeight = portfolio.FloatStackQty * input.CurrentPrice / Math.Max(portfolio.TotalEquity, 1m);
         if (currentMicroWeight >= 0.1m) // Already have sufficient float
             return new Output { Reason = "Sufficient float position" };
 
@@ -59,12 +59,12 @@ public static class DeadReleaseEngine
 
         var requiredBtc = input.RequiredSellUsdt / input.CurrentPrice;
         var portfolio = input.Portfolio;
-        var deficit = requiredBtc - portfolio.FloatBtc;
+        var deficit = requiredBtc - portfolio.FloatStackQty;
 
         if (deficit <= 0) return new Output { Reason = "Sufficient FloatBTC" };
 
         // Hard release: take from DeadBTC (never ColdSealed)
-        var releaseBtc = Math.Min(deficit, portfolio.DeadBtc);
+        var releaseBtc = Math.Min(deficit, portfolio.DeadStackQty);
         if (releaseBtc <= 0) return new Output { Reason = "No DeadBTC available" };
 
         return new Output

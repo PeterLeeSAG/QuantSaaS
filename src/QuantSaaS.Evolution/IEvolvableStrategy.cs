@@ -36,6 +36,7 @@ public record WindowScore
     public decimal MaxDrawdown { get; init; }
     public decimal StrategyRoi { get; init; }
     public decimal DcaRoi { get; init; }
+    public bool IsFatal { get; init; }
 }
 
 public record EvaluablePlan
@@ -46,5 +47,5 @@ public record EvaluablePlan
     public decimal LotStep { get; init; }
     public decimal LotMin { get; init; }
     public CrucibleWindow[] Windows { get; init; } = null!;
-    public GhostDcaResult[] DcaBaselines { get; init; } = null!;
+    public GhostDcaSimulator.Result[] DcaBaselines { get; init; } = null!;
 }

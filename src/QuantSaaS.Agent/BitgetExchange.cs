@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using QuantSaaS.Core.Models;
 using QuantSaaS.Infrastructure.WebSocket;
 
 namespace QuantSaaS.Agent;
@@ -36,7 +37,7 @@ public class BitgetExchange
                 side,
                 orderType,
                 force = "gtc",
-                size = cmd.AmountUsdt?.ToString("F2")
+                size = cmd.AmountQuote?.ToString("F2")
             };
         }
         else
@@ -71,7 +72,7 @@ public class BitgetExchange
             {
                 Success = true,
                 OrderId = $"SANDBOX-{Guid.NewGuid():N}",
-                FilledQty = cmd.QtyAsset ?? (cmd.AmountUsdt ?? 100m) / 50000m,
+                FilledQty = cmd.QtyAsset ?? (cmd.AmountQuote ?? 100m) / 50000m,
                 FilledPrice = 50000m,
                 Fee = 0.001m
             };
@@ -156,4 +157,14 @@ public record PlaceOrderResult
     public decimal FilledQty { get; init; }
     public decimal FilledPrice { get; init; }
     public decimal Fee { get; init; }
+}
+
+/// <summary>Crypto balance snapshot returned by the exchange adapter.</summary>
+public record BalanceSnapshot
+{
+    public decimal BtcAvailable { get; init; }
+    public decimal BtcFrozen { get; init; }
+    public decimal UsdtAvailable { get; init; }
+    public decimal UsdtFrozen { get; init; }
+    public long Timestamp { get; init; }
 }

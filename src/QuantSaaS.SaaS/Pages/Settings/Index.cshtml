@@ -1,0 +1,94 @@
+@page
+@model QuantSaaS.SaaS.Pages.Settings.IndexModel
+@{
+    ViewData["Title"] = "Settings";
+    ViewData["ActivePage"] = "Settings";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Account, brokers and agent configuration</div>
+    </div>
+</div>
+
+<!-- User profile -->
+<div class="dash-card mb-4">
+    <div class="section-title mb-3">User Profile</div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="avatar" style="width:48px;height:48px;font-size:1rem;">U</div>
+        <div>
+            <div style="font-weight:700;">@Model.Vm.Email</div>
+            <div class="mt-1">
+                @{
+                    var planClass = Model.Vm.SubscriptionPlan switch {
+                        "pro"     => "badge-asset-crypto",
+                        "starter" => "badge-asset-stock",
+                        _         => "badge-status-stopped"
+                    };
+                }
+                <span class="pill @planClass">@Model.Vm.SubscriptionPlan.ToUpperInvariant()</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Broker connections -->
+<div class="section-title mb-3">Broker Connections</div>
+<div class="row g-3 mb-4">
+    @foreach (var broker in Model.Vm.Brokers)
+    {
+        <div class="col-md-4">
+            <div class="connector-card">
+                <div>
+                    <div class="connector-name">@broker.DisplayName</div>
+                    <div class="connector-type">@broker.Name.ToUpperInvariant()</div>
+                    @if (!string.IsNullOrEmpty(broker.AccountId))
+                    {
+                        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">@broker.AccountId</div>
+                    }
+                </div>
+                <div>
+                    @if (broker.Connected)
+                    {
+                        <span class="pill badge-status-running">
+                            <span class="dot dot-green"></span> Connected
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="pill badge-status-stopped">
+                            <span class="dot dot-gray"></span> Disconnected
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Agent status -->
+<div class="dash-card">
+    <div class="section-title mb-3">@QuantSaaS.Core.Models.UserTerms.Agent Status</div>
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <div style="font-weight:700;">Local @QuantSaaS.Core.Models.UserTerms.Agent</div>
+            @if (!string.IsNullOrEmpty(Model.Vm.AgentVersion))
+            {
+                <div style="font-size:0.78rem;color:var(--text-muted);">v@Model.Vm.AgentVersion</div>
+            }
+        </div>
+        @if (Model.Vm.AgentOnline)
+        {
+            <span class="pill badge-status-running">
+                <span class="dot dot-green"></span> Online
+            </span>
+        }
+        else
+        {
+            <span class="pill badge-status-error">
+                <span class="dot dot-red"></span> Offline
+            </span>
+        }
+    </div>
+</div>

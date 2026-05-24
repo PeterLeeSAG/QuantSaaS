@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using QuantSaaS.Core.Models;
 using QuantSaaS.Infrastructure.WebSocket;
 
 namespace QuantSaaS.Agent;
@@ -82,7 +83,7 @@ public class AgentWsClient : IHostedService
                 await SendAsync(ws, new
                 {
                     type = "delta_report",
-                    payload = new DeltaReport { Balances = balances }
+                    payload = new DeltaReport { Balances = ToAssetBalances(balances) }
                 }, ct);
 
                 // Step 6: Message loop
@@ -145,14 +146,14 @@ public class AgentWsClient : IHostedService
             var report = new DeltaReport
             {
                 ClientOrderId = cmd.ClientOrderId,
-                Balances = balances,
+                Balances = ToAssetBalances(balances),
                 Execution = new ExecutionDetail
                 {
                     FilledQty = result.FilledQty,
                     FilledPrice = result.FilledPrice,
                     Fee = result.Fee,
-                    FeeAsset = "USDT",
-                    Status = result.Success ? "filled" : "failed"
+                    Status = result.Success ? "filled" : "failed",
+                    TimestampUtc = DateTime.UtcNow
                 }
             };
 
@@ -213,5 +214,14 @@ public class AgentWsClient : IHostedService
             if (ws.State == WebSocketState.Open)
                 await SendAsync(ws, new { type = "heartbeat" }, ct);
         }
+    }
+
+    private static IReadOnlyList<AssetBalance> ToAssetBalances(BalanceSnapshot snap)
+    {
+        return new[]
+        {
+            new AssetBalance { Asset = "BTC",  Available = snap.BtcAvailable,  Frozen = snap.BtcFrozen },
+            new AssetBalance { Asset = "USDT", Available = snap.UsdtAvailable, Frozen = snap.UsdtFrozen }
+        };
     }
 }

@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using QuantSaaS.Core.Models;
 using QuantSaaS.Infrastructure.Data;
 using QuantSaaS.Infrastructure.WebSocket;
-using QuantSaaS.Strategy;
+using QuantSaaS.Quant;
+using QuantSaaS.Strategy.BtcSpot;
 
 namespace QuantSaaS.SaaS.Services;
 
@@ -18,7 +19,6 @@ public class CronTickService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly WsHub _wsHub;
     private readonly ILogger<CronTickService> _logger;
-    private readonly BtcSpotStrategy _strategy = new();
 
     public CronTickService(
         InstanceManager instanceManager,
@@ -50,7 +50,6 @@ public class CronTickService : BackgroundService
 
         try
         {
-            // Step 1: Idempotency check
             var portfolioEntity = await db.PortfolioStates.FindAsync([instanceId], ct);
             var instanceEntity = await db.StrategyInstances.FindAsync([instanceId], ct);
             if (portfolioEntity == null || instanceEntity == null) return;
@@ -61,9 +60,8 @@ public class CronTickService : BackgroundService
                 .FirstOrDefaultAsync(ct);
 
             if (latestBar == null || latestBar.OpenTime <= portfolioEntity.LastProcessedBarTime)
-                return; // Already processed
+                return;
 
-            // Step 2: Load recent bars for strategy input
             var recentBars = await db.KLines
                 .Where(k => k.Symbol == instanceEntity.Symbol && k.Interval == instanceEntity.AggregationPeriod)
                 .OrderByDescending(k => k.OpenTime)
@@ -74,102 +72,110 @@ public class CronTickService : BackgroundService
             var closes = recentBars.Select(b => b.Close).ToArray();
             var timestamps = recentBars.Select(b => b.OpenTime).ToArray();
 
-            // Step 3: Load champion params
             var champion = await db.GeneRecords
-                .Where(g => g.StrategyId == _strategy.StrategyId && g.Role == "champion")
+                .Where(g => g.StrategyId == "btc-spot-v1" && g.Role == "champion")
                 .OrderByDescending(g => g.PromotedAt)
                 .FirstOrDefaultAsync(ct);
 
             var chromosome = champion != null
-                ? TryDeserializeChromosome(champion.ParamPackJson) ?? Chromosome.DefaultSeed
-                : Chromosome.DefaultSeed;
+                ? TryDeserializeChromosome(champion.ParamPackJson) ?? BtcChromosome.DefaultSeed
+                : BtcChromosome.DefaultSeed;
 
             var spawnPoint = champion != null
                 ? TryDeserializeSpawn(champion.ParamPackJson) ?? SpawnPoint.Default
                 : SpawnPoint.Default;
 
-            // Step 4: Load runtime state
             var runtimeEntity = await db.RuntimeStates.FindAsync([instanceId], ct);
-            var runtimeState = runtimeEntity != null
-                ? JsonSerializer.Deserialize<StrategyRuntimeState>(runtimeEntity.StateJson) ?? new()
-                : new StrategyRuntimeState();
+            var runtimeStateJson = runtimeEntity?.StateJson ?? "{}";
 
-            // Step 5: Build portfolio snapshot
+            var currentPrice = closes.Length > 0 ? closes[^1] : 0m;
             var portfolio = new PortfolioState
             {
-                UsdtBalance = portfolioEntity.UsdtBalance,
-                DeadBtc = portfolioEntity.DeadBtc,
-                FloatBtc = portfolioEntity.FloatBtc,
-                ColdSealedBtc = portfolioEntity.ColdSealedBtc,
-                LastProcessedBarTime = portfolioEntity.LastProcessedBarTime,
-                Symbol = instanceEntity.Symbol,
-                AggregationPeriod = instanceEntity.AggregationPeriod
+                SpendableQuote = portfolioEntity.UsdtBalance,
+                DeadStackQty = portfolioEntity.DeadBtc,
+                FloatStackQty = portfolioEntity.FloatBtc,
+                ColdSealedQty = portfolioEntity.ColdSealedBtc,
+                TotalEquity = portfolioEntity.UsdtBalance
+                              + (portfolioEntity.DeadBtc + portfolioEntity.FloatBtc + portfolioEntity.ColdSealedBtc) * currentPrice,
+                LastProcessedBarMs = portfolioEntity.LastProcessedBarTime
             };
 
-            // Step 6: Build StrategyInput and call pure Step()
+            var instrument = new Instrument
+            {
+                Symbol = instanceEntity.Symbol,
+                AssetClass = AssetClass.Crypto,
+                QuoteCurrency = "USDT",
+                LotStep = 0.00001m,
+                LotMin = 0.00001m,
+                TickSize = 0.01m,
+                FractionAllowed = true,
+                SettlementDays = 0
+            };
+
+            var strategy = new BtcSpotStrategy(chromosome);
             var input = new StrategyInput
             {
-                ClosePrices = closes,
+                Closes = closes,
                 Timestamps = timestamps,
+                CurrentPrice = currentPrice,
+                Instrument = instrument,
                 Portfolio = portfolio,
-                Market = QuantSaaS.Quant.MarketStateComputer.Compute(closes),
-                Config = chromosome,
-                Spawn = spawnPoint,
-                RuntimeState = runtimeState
+                Market = MarketStateComputer.Compute(closes),
+                RuntimeStateJson = runtimeStateJson
             };
 
-            var output = _strategy.Step(input);
+            var output = strategy.Step(input);
 
-            // Step 7: Persist runtime state
             if (runtimeEntity == null)
             {
                 db.RuntimeStates.Add(new RuntimeStateEntity
                 {
                     InstanceId = instanceId,
-                    StateJson = JsonSerializer.Serialize(output.NewRuntimeState),
+                    StateJson = output.UpdatedRuntimeStateJson,
                     LastUpdatedBarTime = latestBar.OpenTime
                 });
             }
             else
             {
-                runtimeEntity.StateJson = JsonSerializer.Serialize(output.NewRuntimeState);
+                runtimeEntity.StateJson = output.UpdatedRuntimeStateJson;
                 runtimeEntity.LastUpdatedBarTime = latestBar.OpenTime;
             }
 
-            // Step 8: Handle DeadBTC release (SaaS-side ledger only, no Agent command)
-            if (output.ReleaseIntent != null)
+            foreach (var intent in output.Intents)
             {
-                portfolioEntity.DeadBtc = Math.Max(0, portfolioEntity.DeadBtc - output.ReleaseIntent.ReleaseBtc);
-                portfolioEntity.FloatBtc += output.ReleaseIntent.ReleaseBtc;
-                db.AuditLogs.Add(new AuditLogEntity
+                decimal amount = intent.Action == TradingAction.Buy ? intent.AmountQuote : intent.QtyAsset * currentPrice;
+                if (amount < chromosome.MinOrderThreshold) continue;
+
+                var engineLabel = intent.Engine == EngineLayer.Macro ? "MACRO" : "MICRO";
+                var lotTypeLabel = intent.LotType == LotType.DeadStack ? "DEAD_STACK" : "FLOATING";
+                var action = intent.Action == TradingAction.Buy ? "BUY" : "SELL";
+
+                var clientOrderId = $"inst{instanceId:N}-{engineLabel.ToLower()}-{latestBar.OpenTime}";
+                var cmd = new TradeCommand
+                {
+                    ClientOrderId = clientOrderId,
+                    Action = action,
+                    Engine = engineLabel,
+                    Symbol = instanceEntity.Symbol,
+                    AmountQuote = action == "BUY" ? intent.AmountQuote : null,
+                    QtyAsset = action == "SELL" ? intent.QtyAsset : null,
+                    LotType = lotTypeLabel
+                };
+
+                db.SpotExecutions.Add(new SpotExecutionEntity
                 {
                     InstanceId = instanceId,
-                    EventType = output.ReleaseIntent.IsSoftRelease ? "DEAD_RELEASE_SOFT" : "DEAD_RELEASE_HARD",
-                    PayloadJson = JsonSerializer.Serialize(output.ReleaseIntent)
+                    ClientOrderId = clientOrderId,
+                    Status = "pending",
+                    LotType = lotTypeLabel,
+                    CommandJson = JsonSerializer.Serialize(cmd)
                 });
+
+                if (!_wsHub.SendToAgent(instanceEntity.UserId, cmd))
+                    _logger.LogWarning("Agent disconnected for user {UserId}, command {OrderId} queued",
+                        instanceEntity.UserId, clientOrderId);
             }
 
-            // Step 9: Build and dispatch TradeCommands
-            var currentPrice = closes.Length > 0 ? closes[^1] : 0;
-
-            if (output.MacroAction == OrderAction.Buy && output.MacroOrderUsdt >= chromosome.MinOrderThreshold)
-            {
-                await DispatchCommandAsync(db, instanceEntity, instanceId, output.MacroOrderUsdt,
-                    "BUY", "MACRO", "DEAD_STACK", currentPrice, latestBar.OpenTime, ct);
-            }
-
-            if (output.MicroAction == OrderAction.Buy && output.MicroOrderUsdt >= chromosome.MinOrderThreshold)
-            {
-                await DispatchCommandAsync(db, instanceEntity, instanceId, output.MicroOrderUsdt,
-                    "BUY", "MICRO", "FLOATING", currentPrice, latestBar.OpenTime, ct);
-            }
-            else if (output.MicroAction == OrderAction.Sell && Math.Abs(output.MicroOrderUsdt) >= chromosome.MinOrderThreshold)
-            {
-                await DispatchCommandAsync(db, instanceEntity, instanceId, Math.Abs(output.MicroOrderUsdt),
-                    "SELL", "MICRO", "FLOATING", currentPrice, latestBar.OpenTime, ct);
-            }
-
-            // Step 10: Update LastProcessedBarTime
             portfolioEntity.LastProcessedBarTime = latestBar.OpenTime;
             portfolioEntity.UpdatedAt = DateTime.UtcNow;
 
@@ -184,50 +190,13 @@ public class CronTickService : BackgroundService
         }
     }
 
-    private async Task DispatchCommandAsync(
-        QuantDbContext db,
-        StrategyInstanceEntity instance,
-        Guid instanceId,
-        decimal amountUsdt,
-        string action,
-        string engine,
-        string lotType,
-        decimal currentPrice,
-        long barTime,
-        CancellationToken ct)
-    {
-        var clientOrderId = $"inst{instanceId:N}-{engine.ToLower()}-{barTime}";
-        var cmd = new TradeCommand
-        {
-            ClientOrderId = clientOrderId,
-            Action = action,
-            Engine = engine,
-            Symbol = instance.Symbol,
-            AmountUsdt = action == "BUY" ? amountUsdt : null,
-            QtyAsset = action == "SELL" ? amountUsdt / currentPrice : null,
-            LotType = lotType
-        };
-
-        db.SpotExecutions.Add(new SpotExecutionEntity
-        {
-            InstanceId = instanceId,
-            ClientOrderId = clientOrderId,
-            Status = "pending",
-            LotType = lotType,
-            CommandJson = JsonSerializer.Serialize(cmd)
-        });
-
-        if (!_wsHub.SendToAgent(instance.UserId, cmd))
-            _logger.LogWarning("Agent disconnected for user {UserId}, command {OrderId} queued", instance.UserId, clientOrderId);
-    }
-
-    private static Chromosome? TryDeserializeChromosome(string json)
+    private static BtcChromosome? TryDeserializeChromosome(string json)
     {
         try
         {
             var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("btc_spot_config", out var el))
-                return JsonSerializer.Deserialize<Chromosome>(el.GetRawText());
+                return JsonSerializer.Deserialize<BtcChromosome>(el.GetRawText());
         }
         catch { }
         return null;

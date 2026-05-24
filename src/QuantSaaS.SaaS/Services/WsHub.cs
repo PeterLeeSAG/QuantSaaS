@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using QuantSaaS.Core.Models;
 using QuantSaaS.Infrastructure.Data;
 using QuantSaaS.Infrastructure.WebSocket;
 
@@ -157,7 +158,7 @@ public class WsHub
         var portfolio = await db.PortfolioStates.FindAsync([instance.Id]);
         if (portfolio != null)
         {
-            portfolio.UsdtBalance = report.Balances.UsdtAvailable;
+            portfolio.UsdtBalance = report.Balances?.FirstOrDefault(b => b.Asset == "USDT")?.Available ?? portfolio.UsdtBalance;
             portfolio.UpdatedAt = DateTime.UtcNow;
         }
 

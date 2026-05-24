@@ -85,7 +85,7 @@ public class Chromosome
     /// Clamps all fields to hard bounds and enforces structural constraints.
     /// Must be called after any mutation or crossover operation.
     /// </summary>
-    public Chromosome Clamp()
+    public virtual Chromosome Clamp()
     {
         Beta = Math.Clamp(Beta, Bounds.BetaMin, Bounds.BetaMax);
         Gamma = Math.Clamp(Gamma, Bounds.GammaMin, Bounds.GammaMax);

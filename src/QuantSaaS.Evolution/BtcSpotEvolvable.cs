@@ -1,8 +1,9 @@
 using System.Text;
 using System.Text.Json;
+using QuantSaaS.Core.Interfaces;
 using QuantSaaS.Core.Models;
 using QuantSaaS.Quant;
-using QuantSaaS.Strategy;
+using QuantSaaS.Strategy.BtcSpot;
 
 namespace QuantSaaS.Evolution;
 
@@ -14,7 +15,18 @@ namespace QuantSaaS.Evolution;
 /// </summary>
 public class BtcSpotEvolvable : IEvolvableStrategy
 {
-    private readonly BacktestAdapter _backtest = new();
+    // BTC/USDT crypto instrument used for backtesting
+    private static readonly Instrument BtcInstrument = new()
+    {
+        Symbol = "BTC/USDT",
+        AssetClass = AssetClass.Crypto,
+        QuoteCurrency = "USDT",
+        LotStep = 0.00001m,
+        LotMin = 0.00001m,
+        TickSize = 0.01m,
+        FractionAllowed = true,
+        SettlementDays = 0
+    };
 
     public string StrategyId() => "btc-spot-sigmoid-v1";
 
@@ -96,6 +108,9 @@ public class BtcSpotEvolvable : IEvolvableStrategy
         const decimal fatalDD = 0.88m;
         const decimal ddPenalty = 1.5m;
 
+        var strategy = new BtcSpotStrategy(chromosome as BtcChromosome ?? BtcChromosome.DefaultSeed);
+        var engine = new BacktestEngine(strategy);
+
         var scores = new List<WindowScore>();
         double totalScore = 0;
         decimal worstDD = 0;
@@ -105,16 +120,13 @@ public class BtcSpotEvolvable : IEvolvableStrategy
         {
             var dcaBaseline = plan.DcaBaselines[Array.IndexOf(plan.Windows, window)];
 
-            var result = _backtest.Run(new BacktestAdapter.BacktestConfig
-            {
-                Closes = window.Closes,
-                Timestamps = window.Timestamps,
-                Chromosome = chromosome,
-                Spawn = plan.Spawn,
-                EvalStartMs = window.EvalStartMs
-            });
+            // Convert close prices + timestamps to Bar[]
+            var bars = ClosesToBars(window.Closes, window.Timestamps);
+            int evalStartIdx = FindEvalStartIdx(window.Timestamps, window.EvalStartMs);
 
-            var alpha = result.Roi - dcaBaseline.Roi;
+            var result = engine.Run(bars, evalStartIdx, BtcInstrument, plan.Spawn);
+
+            var alpha = result.ROI - dcaBaseline.ROI;
             var excessDD = Math.Max(0, result.MaxDrawdown - dcaBaseline.MaxDrawdown);
             var sliceScore = alpha - ddPenalty * excessDD;
 
@@ -125,7 +137,7 @@ public class BtcSpotEvolvable : IEvolvableStrategy
                     Label = window.Label, Weight = window.Weight,
                     Alpha = alpha, SliceScore = -99999m,
                     MaxDrawdown = result.MaxDrawdown,
-                    StrategyRoi = result.Roi, DcaRoi = dcaBaseline.Roi
+                    StrategyRoi = result.ROI, DcaRoi = dcaBaseline.ROI
                 });
                 return new FitnessResult
                 {
@@ -143,7 +155,7 @@ public class BtcSpotEvolvable : IEvolvableStrategy
                 Label = window.Label, Weight = window.Weight,
                 Alpha = alpha, SliceScore = sliceScore,
                 MaxDrawdown = result.MaxDrawdown,
-                StrategyRoi = result.Roi, DcaRoi = dcaBaseline.Roi
+                StrategyRoi = result.ROI, DcaRoi = dcaBaseline.ROI
             });
         }
 
@@ -154,6 +166,24 @@ public class BtcSpotEvolvable : IEvolvableStrategy
             IsFatal = false,
             WindowScores = scores.ToArray()
         };
+    }
+
+    private static Bar[] ClosesToBars(decimal[] closes, long[] timestamps)
+    {
+        var bars = new Bar[closes.Length];
+        for (int i = 0; i < closes.Length; i++)
+        {
+            bars[i] = new Bar { OpenTimeMs = timestamps[i], Close = closes[i],
+                Open = closes[i], High = closes[i], Low = closes[i], Volume = 1m };
+        }
+        return bars;
+    }
+
+    private static int FindEvalStartIdx(long[] timestamps, long evalStartMs)
+    {
+        for (int i = 0; i < timestamps.Length; i++)
+            if (timestamps[i] >= evalStartMs) return i;
+        return 0;
     }
 
     public Chromosome DecodeElite(string? paramPackJson)
