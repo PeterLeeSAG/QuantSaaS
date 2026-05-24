@@ -18,7 +18,7 @@ var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfig>() ?? new 
 
 // ── Database ──────────────────────────────────────────────────────────────────
 // Dapper/Postgres services (primary DB layer — see Infrastructure/Services/)
-var pgConnStr = builder.Configuration.GetConnectionString("MsSql");
+var pgConnStr = builder.Configuration.GetConnectionString("Postgres");
 if (!string.IsNullOrEmpty(pgConnStr))
 {
     var dbFactory = new DbConnectionFactory(pgConnStr);
